@@ -1,7 +1,8 @@
-# Carpeta de descargas de PDFs masivos
-descargas_pdf/
+# Carpeta de descargas de EXPEDIENTES
+EXPEDIENTES/
 
-# Archivos de entorno y caché de Python
+# Archivos de configuración y caché
 __pycache__/
 *.pyc
 .env
+settings.json

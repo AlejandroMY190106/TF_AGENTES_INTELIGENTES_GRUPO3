@@ -7,12 +7,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # =========================================================================
 # CONFIGURACIÓN GLOBAL CONTROLABLE
 # =========================================================================
-CARPETA_RAIZ_DESCARGAS = "descargas_pdf"  # Carpeta contenedora principal (Pon esto en tu .gitignore)
+CARPETA_RAIZ_DESCARGAS = "EXPEDIENTES"  # Carpeta contenedora principal
 ANIO_OBJETIVO = "2025"                    # Año que deseas procesar
-MENSUAL = False                           # True: Descarga un solo mes | False: Descarga todo el año completo
+MENSUAL = True                           # True: Descarga un solo mes | False: Descarga todo el año completo
 MES_OBJETIVO = "01"                       # Si MENSUAL es True, indicas el mes aquí ("01", "02", ... "12")
 
-MAX_WORKERS = 8                           # Número de descargas en simultáneo
+MAX_WORKERS = 10                           # Número de descargas en simultáneo
 # =========================================================================
 
 # Configuración de Endpoints y Headers
