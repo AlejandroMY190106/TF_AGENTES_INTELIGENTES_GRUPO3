@@ -1,0 +1,7 @@
+# Carpeta de descargas de PDFs masivos
+descargas_pdf/
+
+# Archivos de entorno y caché de Python
+__pycache__/
+*.pyc
+.env

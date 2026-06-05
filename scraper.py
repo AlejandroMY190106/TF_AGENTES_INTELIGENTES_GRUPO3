@@ -7,11 +7,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # =========================================================================
 # CONFIGURACIÓN GLOBAL CONTROLABLE
 # =========================================================================
-ANIO_OBJETIVO = "2025"      # Año que deseas procesar
-MENSUAL = False             # True: Descarga un solo mes | False: Descarga todo el año completo
-MES_OBJETIVO = "01"         # Si MENSUAL es True, indicas el mes aquí ("01", "02", ... "12")
+CARPETA_RAIZ_DESCARGAS = "descargas_pdf"  # Carpeta contenedora principal (Pon esto en tu .gitignore)
+ANIO_OBJETIVO = "2025"                    # Año que deseas procesar
+MENSUAL = False                           # True: Descarga un solo mes | False: Descarga todo el año completo
+MES_OBJETIVO = "01"                       # Si MENSUAL es True, indicas el mes aquí ("01", "02", ... "12")
 
-MAX_WORKERS = 10             # Número de descargas en simultáneo
+MAX_WORKERS = 8                           # Número de descargas en simultáneo
 # =========================================================================
 
 # Configuración de Endpoints y Headers
@@ -24,18 +25,18 @@ HEADERS = {
 # Lógica de automatización de periodos y creación organizada de carpetas
 if MENSUAL:
     periodos_a_descargar = [f"{ANIO_OBJETIVO}-{MES_OBJETIVO}"]
-    # Crear estructura: ANIO_OBJETIVO/MES_OBJETIVO (Ej: 2025/01)
-    os.makedirs(os.path.join(ANIO_OBJETIVO, MES_OBJETIVO), exist_ok=True)
+    # Crear estructura: CARPETA_RAIZ_DESCARGAS/ANIO_OBJETIVO/MES_OBJETIVO (Ej: descargas_pdf/2025/01)
+    os.makedirs(os.path.join(CARPETA_RAIZ_DESCARGAS, ANIO_OBJETIVO, MES_OBJETIVO), exist_ok=True)
 else:
     periodos_a_descargar = [f"{ANIO_OBJETIVO}-{str(mes).zfill(2)}" for mes in range(1, 13)]
-    # Crear la carpeta del año y todas sus subcarpetas del 01 al 12 automáticamente
+    # Crear la carpeta contenedora, el año y todas sus subcarpetas del 01 al 12 automáticamente
     for mes in range(1, 13):
         mes_str = str(mes).zfill(2)
-        os.makedirs(os.path.join(ANIO_OBJETIVO, mes_str), exist_ok=True)
+        os.makedirs(os.path.join(CARPETA_RAIZ_DESCARGAS, ANIO_OBJETIVO, mes_str), exist_ok=True)
 
 
 def descargar_un_pdf(item, periodo):
-    """Función independiente para descargar un solo PDF en su carpeta respectiva"""
+    """Función independiente para descargar un solo PDF en su carpeta respectiva dentro de la raíz aislada"""
     source = item.get("_source", {})
     expediente = source.get("numero_expediente")
     url_pdf = source.get("url_archivo")
@@ -47,8 +48,8 @@ def descargar_un_pdf(item, periodo):
     anio, mes = periodo.split("-")
     nombre_limpio = expediente.replace("/", "_").replace(" ", "")
     
-    # Ruta dinámica: Año/Mes/expediente.pdf (Ej: 2025/04/01167-2012-AA.pdf)
-    ruta_guardado = os.path.join(anio, mes, f"{nombre_limpio}.pdf")
+    # Ruta dinámica: descargas_pdf/Año/Mes/expediente.pdf (Ej: descargas_pdf/2025/04/01167-2012-AA.pdf)
+    ruta_guardado = os.path.join(CARPETA_RAIZ_DESCARGAS, anio, mes, f"{nombre_limpio}.pdf")
     
     if os.path.exists(ruta_guardado):
         return "existente"
@@ -67,7 +68,7 @@ def descargar_un_pdf(item, periodo):
 
 # --- Flujo Principal de Extracción ---
 print(f"Modo de descarga seleccionado: {'MENSUAL' if MENSUAL else 'ANUAL'}")
-print(f"Estructura de directorios organizada en la raíz para el año: {ANIO_OBJETIVO}")
+print(f"Directorio raíz de aislamiento: {CARPETA_RAIZ_DESCARGAS}/{ANIO_OBJETIVO}/")
 
 for periodo in periodos_a_descargar:
     print(f"\n=========================================")
