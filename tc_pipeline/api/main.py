@@ -1,0 +1,117 @@
+"""
+tc_pipeline/api/main.py
+───────────────────────
+Aplicación FastAPI — Sistema Multiagente para análisis de jurisprudencia del TC.
+
+Punto de entrada principal del backend. Configura:
+- CORS (para desarrollo frontend)
+- Metadata de la API (título, versión, descripción)
+- Montaje del router con todos los endpoints
+- Eventos de startup/shutdown
+
+Para ejecutar:
+    uvicorn tc_pipeline.api.main:app --reload --port 8000
+"""
+
+from __future__ import annotations
+
+import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from tc_pipeline.api.routes import router, set_parquet_store
+from tc_pipeline.storage.parquet_store import ParquetStore
+
+logger = logging.getLogger(__name__)
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Lifespan (startup / shutdown)
+# ─────────────────────────────────────────────────────────────────────────
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gestiona el ciclo de vida de la aplicación."""
+    # ── Startup ──────────────────────────────────────────────────────
+    logger.info("🚀 Iniciando API del Sistema Multiagente TC...")
+
+    # Configurar Parquet store
+    parquet_path = Path("data/raw/expedientes_tc.parquet")
+    store = ParquetStore(parquet_path)
+    set_parquet_store(store)
+
+    if store.exists:
+        stats = store.get_stats()
+        logger.info(
+            "📊 Dataset cargado: %d expedientes",
+            stats.get("total_expedientes", 0),
+        )
+    else:
+        logger.warning(
+            "⚠️  Dataset no encontrado en %s. "
+            "Ejecute: python scripts/collect_metadata.py",
+            parquet_path,
+        )
+
+    yield
+
+    # ── Shutdown ─────────────────────────────────────────────────────
+    logger.info("🛑 API detenida.")
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Aplicación FastAPI
+# ─────────────────────────────────────────────────────────────────────────
+
+app = FastAPI(
+    title="Sistema Multiagente TC — Análisis de Jurisprudencia",
+    description=(
+        "API backend para el sistema multiagente de análisis de jurisprudencia "
+        "del Tribunal Constitucional del Perú.\n\n"
+        "**Agentes del sistema:**\n"
+        "- 🔧 **Agente de Curación**: Pipeline de extracción, limpieza e imputación\n"
+        "- 🔍 **Agente RAG**: Recuperación semántica y generación de briefs ejecutivos\n"
+        "- 📊 **Agente Predictivo**: Predicción del sentido del fallo\n\n"
+        "**Estado actual:** Fase 1 — Pipeline de extracción operativo"
+    ),
+    version="0.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+
+# ── CORS ─────────────────────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, restringir a dominios específicos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Montar router ────────────────────────────────────────────────────────
+app.include_router(router, prefix="/api/v1")
+
+
+# ── Ruta raíz ────────────────────────────────────────────────────────────
+
+
+@app.get("/", tags=["Root"])
+async def root() -> dict[str, str]:
+    """Ruta raíz con información básica de la API."""
+    return {
+        "service": "Sistema Multiagente TC",
+        "version": "0.1.0",
+        "docs": "/docs",
+        "health": "/api/v1/health",
+    }
