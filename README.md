@@ -1,57 +1,87 @@
 # TF Agentes Inteligentes - Grupo 3
 
-## 🛠️ Requisitos e Instalación
+Sistema Multiagente para análisis de jurisprudencia del Tribunal Constitucional. Este repositorio contiene el pipeline de extracción, limpieza y procesamiento, así como los orquestadores CLI.
 
-El proyecto se ejecuta sobre un entorno de Anaconda. Asegúrate de tener instaladas las librerías necesarias ejecutando en tu terminal:
+---
 
+## 🛠️ Stack Tecnológico y Dependencias Principales
+
+El proyecto utiliza componentes modulares. Puedes revisar el archivo `requirements.txt` para la lista completa, pero aquí destacamos las responsabilidades del stack:
+
+- **Core & Orquestación**: `FastAPI` (Backend/API), `pydantic` (esquemas y validaciones).
+- **Procesamiento de Datos**: `pandas`, `openpyxl` (limpieza y cruce de datos Excel), `pyarrow` (formatos columnares).
+- **Extracción (Scraping)**: `requests`, `tqdm` (descarga concurrente e interacción con la API del TC).
+- **NLP & Embeddings**: `sentence-transformers`, `torch`, `scikit-learn` (chunking, cálculos de similitud, Legal-BERT).
+- **Base de Datos Vectorial**: `chromadb` (persistencia y recuperación semántica RAG).
+- **Integración LLM**: `anthropic` (generación de briefs ejecutivos con Claude 3), `langchain` (orquestación).
+- **Persistencia Operacional**: `sqlite3` nativo (manifiesto de estado de descargas).
+
+---
+
+## 🚀 Requisitos e Instalación (Onboarding)
+
+Para evitar conflictos de dependencias, es obligatorio utilizar un entorno virtual (venv).
+
+### 1. Clonar el repositorio y crear el entorno virtual
+En la raíz del proyecto, ejecuta en tu terminal:
 ```bash
-pip install pandas openpyxl requests tqdm
+python -m venv venv
+```
 
+### 2. Activar el entorno virtual
+- **En Windows (PowerShell/CMD)**:
+  ```bash
+  .\venv\Scripts\activate
+  ```
+- **En macOS/Linux**:
+  ```bash
+  source venv/bin/activate
+  ```
+
+### 3. Instalar dependencias
+```bash
+pip install -r requirements.txt
 ```
 
 ---
 
-## 📄 Descripción de los Scripts
+## 📄 Arquitectura y Responsabilidades
 
-El repositorio cuenta con dos scripts principales de Python que trabajan de forma secuencial:
+### Fase 1: Pipeline de Extracción (`tc_pipeline/scraping/`)
+Se ha migrado de un script monolítico hacia módulos especializados:
+- `api_client.py`: Único responsable de consultar la API cronológica del TC, gestionar la paginación, los _timeouts_ (connect=5s, read=20s) y manejar política de reintentos automáticos (backoff exponencial).
+- `downloader.py`: Encargado de las descargas de PDFs utilizando multiprocesamiento (`ThreadPoolExecutor`). Verifica si el archivo existe para no re-descargar y guarda los PDFs de forma jerárquica (`EXPEDIENTES/YYYY/MM/xxx.pdf`).
+- `manifest.py`: Usa SQLite (`pipeline_state.db`) para llevar auditoría de los expedientes descargados (`success`, `failed`, `pending`). Permite reanudar descargas en caso de caídas de internet sin empezar desde cero.
 
-### 1. `particionar.py`
-
-* **¿Qué hace?**: Toma el archivo maestro original (`dataset_tc.xlsx - Exportar Hoja de Trabajo.csv`) que contiene cerca de 150,000 registros y lo divide en múltiples archivos Excel pequeños organizados de forma independiente por año de publicación(ej. `tribunal_2024.xlsx`).
-* **Características clave**:
-* Está configurado con codificación `latin1` para evitar que el script falle debido a tildes o la letra **ñ** que exporta Windows por defecto.
-* Analiza la columna numérica de 8 dígitos `PUB_PAGWEB` (formato `YYYYMMDD`) para extraer el año exacto de forma estricta.
-* Separa y aísla en un archivo independiente todos los registros que carecen de fecha válida o traen guiones (`--`) para no perder información.
-* **Propósito**: Optimiza el rendimiento evitando saturar la memoria RAM de la computadora y permitiendo procesar el lote de descargas por bloques anuales.
-
-### 2. `scraper.py` (En Desarrollo - Modificaciones Planeadas)
-
-* **Objetivo del script**: Este script será el encargado de conectar con la API oficial del Tribunal Constitucional para automatizar la descarga física de los PDFs y enriquecer nuestros archivos de Excel anuales de forma automatizada.
-
-**Funcionalidades Actuales**:
-* **Descargas Concurrentes (Multi-threading)**: Implementación de `ThreadPoolExecutor` para gestionar hilos de descarga simultáneos, acelerando drásticamente el almacenamiento local de los archivos PDF.
-
-**Modificaciones Planeadas**:
-* **Algoritmo de Match Inteligente**: Como nuestro dataset no cuenta con el número de expediente textual, el script realizará un cruce avanzado comparando la fecha de publicación, la correspondencia de la columna `SALA` y rastreando la palabra exacta de la columna `FALLO` (ej. "FUNDADA") directamente dentro del texto plano del PDF indexado en la API (`attachment.content`).
-
-* **Guardado Incremental en Tiempo Real**: El script actualizará celda por celda directamente en el archivo Excel anual en ejecución. Al finalizar el análisis de cada día, se guardará el progreso para evitar pérdidas de información ante cortes de luz o de internet.
-* **Columnas de Enriquecimiento**: Al hacer match, creará e insertará automáticamente dos columnas nuevas al final del Excel: `NUMERO_EXPEDIENTE_TC` (consiguiendo el dato que nos faltaba) y `RUTA_LOCAL_PDF` (con la ubicación del archivo descargado).
-* **Tolerancia a Interrupciones**: Estará diseñado para verificar si una fila ya tiene un expediente asignado; si es así, la saltará, permitiendo reanudar el script desde donde se quedó sin duplicar descargas.
+### Scripts Legacy (Deprecados temporalmente)
+- `legacy_scraper.py`: El script original monolítico, conservado como fallback.
+- `legacy_partition.py`: Script para dividir el dataset maestro por años.
 
 ---
 
-## 🚀 Flujo de Trabajo (Cómo usarlo)
+## 💻 Flujo de Trabajo (Cómo usar el orquestador)
 
-1. **Paso 1**: Asegúrate de tener el archivo `dataset_tc.xlsx - Exportar Hoja de Trabajo.csv` en la raíz del proyecto.
-2. **Paso 2**: Ejecuta el particionador para segmentar tu base de datos:
+El punto de entrada unificado para iniciar descargas físicas desde la API oficial del TC es `scripts/download_pdfs.py`. Este CLI expone varios comandos útiles:
 
-```bash
-python particionar.py
-```
+1. **Descargar un mes específico:**
+   ```bash
+   python scripts/download_pdfs.py --year 2025 --month 01
+   ```
 
-*Esto creará la carpeta `EXCELES_POR_AÑO` con los archivos independientes.*
-3. **Paso 3**: Mueve o copia el Excel del año que deseas trabajar (ejemplo: `tribunal_2024.xlsx`) a la raíz del proyecto, configura las variables de fecha en la cabecera de `scraper.py` y ejecútalo:
+2. **Descargar un año completo:**
+   ```bash
+   python scripts/download_pdfs.py --year 2024
+   ```
 
-```bash
-python scraper.py
-```
+3. **Descargar un rango histórico (múltiples años):**
+   ```bash
+   python scripts/download_pdfs.py --start-year 1992 --end-year 2026
+   ```
+
+4. **Reanudar descargas fallidas (tolerancia a fallos):**
+   Si la extracción se interrumpió o hubo errores temporales de conexión, este comando consultará la base SQLite local y solo reintentará los PDFs marcados como `failed`.
+   ```bash
+   python scripts/download_pdfs.py --retry-failed
+   ```
+
+*(Nota: Opcionalmente, puedes sobrescribir la concurrencia en cualquier comando agregando `--max-workers N`, por ej. `--max-workers 15`)*
