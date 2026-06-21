@@ -71,9 +71,19 @@ class PipelineConfig:
         default_factory=lambda: RETRYABLE_STATUS_CODES
     )
 
-    # ── Descargas ────────────────────────────────────────────────────────
+    # ── Descargas (legacy) ───────────────────────────────────────────────
     download_root: Path = Path("EXPEDIENTES")
     max_workers: int = 10
+
+    # ── Nuevas rutas de datos (pipeline CSV) ─────────────────────────────
+    csv_output_root: Path = Path("data/csv")
+    sentencia_raw_root: Path = Path("data/sentencia-raw")
+    auto_resolucion_raw_root: Path = Path("data/auto-resolucion-raw")
+    sentencia_extract_root: Path = Path("data/sentencia-Extract")
+    auto_resolucion_extract_root: Path = Path("data/auto-resolucion-Extract")
+
+    # ── Extracción de PDF ────────────────────────────────────────────────
+    pdf_extraction_timeout: float = 30.0  # Timeout por PDF individual (segundos)
 
     # ── Manifiesto SQLite ────────────────────────────────────────────────
     manifest_db: Path = Path("data/manifests/pipeline_state.db")

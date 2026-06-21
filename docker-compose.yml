@@ -1,0 +1,72 @@
+# ─────────────────────────────────────────────────────────────────────────
+# docker-compose.yml — Pipeline TC
+# ─────────────────────────────────────────────────────────────────────────
+# Arquitectura simple con 2 servicios:
+#   - api:    FastAPI + Uvicorn (panel de control, endpoints de scraping)
+#   - worker: Worker dedicado para tareas pesadas de pipeline
+#
+# Los datos se comparten via volumen montado ./data
+#
+# Uso:
+#   docker-compose up -d                  # Levantar todo
+#   docker-compose up api                 # Solo la API
+#   docker-compose run worker python scripts/run_pipeline.py --phase all --year 2025
+#   docker-compose logs -f api            # Ver logs de la API
+# ─────────────────────────────────────────────────────────────────────────
+
+version: "3.8"
+
+services:
+  # ── API FastAPI ──────────────────────────────────────────────────────
+  # Panel de control para disparar scraping masivo y consultar datasets.
+  # Ejecuta tareas en segundo plano con BackgroundTasks.
+  api:
+    build: .
+    container_name: tc-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data          # Datos compartidos
+      - ./tc_pipeline:/app/tc_pipeline  # Hot-reload del código
+      - ./scripts:/app/scripts
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+    command: >
+      uvicorn tc_pipeline.api.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; r = requests.get('http://localhost:8000/api/v1/health'); r.raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Worker de Pipeline ──────────────────────────────────────────────
+  # Ejecuta fases del pipeline de forma aislada.
+  # Se puede escalar horizontalmente para procesar múltiples años.
+  #
+  # Ejemplos de ejecución:
+  #   docker-compose run worker python scripts/run_pipeline.py --phase json --year 2025
+  #   docker-compose run worker python scripts/run_pipeline.py --phase all --start-year 1992 --end-year 2026
+  worker:
+    build: .
+    container_name: tc-worker
+    volumes:
+      - ./data:/app/data
+      - ./tc_pipeline:/app/tc_pipeline
+      - ./scripts:/app/scripts
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+    # No tiene CMD por defecto — se usa con `docker-compose run`
+    command: >
+      python scripts/run_pipeline.py
+      --phase all
+      --start-year 2024
+      --end-year 2025
+    profiles:
+      - worker  # Solo se activa explícitamente con --profile worker
+    restart: "no"

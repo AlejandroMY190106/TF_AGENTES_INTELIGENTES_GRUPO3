@@ -74,50 +74,6 @@ class ExpedienteAPI(ExpedienteBase):
     model_config = {"extra": "allow"}
 
 
-# ─────────────────────────────────────────────────────────────────────────
-# Expediente enriquecido (después de curación)
-# ─────────────────────────────────────────────────────────────────────────
-
-
-class ExpedienteEnriquecido(BaseModel):
-    """Expediente después de pasar por el Agente de Curación.
-
-    Contiene las columnas del esquema xlsx histórico, con campos
-    derivados y transformados.
-    """
-
-    NEXPEDIENTE: str = Field(..., description="Número de expediente normalizado")
-    PUB_PAGWEB: str | None = Field(None, description="Fecha de publicación web")
-    SALA: str | None = Field(None, description="Sala del TC")
-    FALLO: str | None = Field(None, description="Sentido del fallo")
-    TIPO_RESOLUCION: str | None = Field(None, description="Tipo de resolución (etiqueta)")
-    CDES_TIPOPROCESO: str | None = Field(None, description="Tipo de proceso constitucional")
-    MATERIA: str | None = Field(None, description="Materia (nivel 1)")
-    SUB_MATERIA: str | None = Field(None, description="Sub-materia (nivel 2)")
-    ESPECIFICA: str | None = Field(None, description="Específica (nivel 3)")
-    DEPARTAMENTO: str | None = Field(None, description="Departamento (derivado de distrito judicial)")
-    DEMANDANTE: str | None = Field(None, description="Nombre del demandante")
-    DEMANDADO: str | None = Field(None, description="Nombre del demandado")
-    FUNDAMENTOS: str | None = Field(None, description="Texto de los fundamentos")
-    url_archivo: str | None = Field(None, description="URL al PDF")
-
-    model_config = {"extra": "allow"}
-
-
-# ─────────────────────────────────────────────────────────────────────────
-# Paginación
-# ─────────────────────────────────────────────────────────────────────────
-
-
-class PaginatedResponse(BaseModel):
-    """Wrapper genérico de paginación para respuestas de la API."""
-
-    data: list[dict[str, Any]] = Field(default_factory=list, description="Lista de resultados")
-    total: int = Field(0, description="Total de registros")
-    page: int = Field(1, description="Página actual")
-    page_size: int = Field(20, description="Tamaño de página")
-    total_pages: int = Field(0, description="Total de páginas")
-
 
 # ─────────────────────────────────────────────────────────────────────────
 # Health check
@@ -135,19 +91,6 @@ class HealthResponse(BaseModel):
         description="Estado de cada componente (parquet, sqlite, etc.)"
     )
 
-
-# ─────────────────────────────────────────────────────────────────────────
-# Pipeline Stats
-# ─────────────────────────────────────────────────────────────────────────
-
-
-class PipelineStats(BaseModel):
-    """Estadísticas del pipeline de extracción."""
-
-    total_expedientes: int = 0
-    expedientes_parquet: int = 0
-    expedientes_manifest: dict[str, int] = Field(default_factory=dict)
-    cobertura_temporal: dict[str, Any] = Field(default_factory=dict)
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -198,3 +141,87 @@ class PrediccionResponse(BaseModel):
     )
     modelo: str = Field("", description="Modelo utilizado")
     confianza: float = Field(0.0, description="Confianza de la predicción")
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Pipeline de Scraping Masivo
+# ─────────────────────────────────────────────────────────────────────────
+
+
+class ScrapingRequest(BaseModel):
+    """Request para iniciar el scraping masivo."""
+
+    start_year: int = Field(
+        1992,
+        ge=1992,
+        le=2026,
+        description="Año de inicio",
+    )
+    end_year: int = Field(
+        2026,
+        ge=1992,
+        le=2026,
+        description="Año de fin",
+    )
+    phases: list[str] = Field(
+        default_factory=lambda: ["json", "download", "extract"],
+        description="Fases a ejecutar: json, download, extract",
+    )
+
+
+class ScrapingProgress(BaseModel):
+    """Progreso de una tarea de scraping."""
+
+    current_year: int | None = Field(None, description="Año en proceso")
+    current_phase: str | None = Field(None, description="Fase actual")
+    years_done: int = Field(0, description="Años completados")
+    total_years: int = Field(0, description="Total de años a procesar")
+    records_processed: int = Field(0, description="Registros procesados")
+    pdfs_downloaded: int = Field(0, description="PDFs descargados")
+    pdfs_extracted: int = Field(0, description="PDFs con texto extraído")
+
+
+class ScrapingStatus(BaseModel):
+    """Estado de una tarea de scraping."""
+
+    task_id: str = Field(..., description="ID de la tarea")
+    status: str = Field(
+        "pending",
+        description="Estado: pending, running, completed, failed, cancelled",
+    )
+    progress: ScrapingProgress = Field(
+        default_factory=ScrapingProgress,
+        description="Progreso actual",
+    )
+    errors: list[str] = Field(
+        default_factory=list,
+        description="Errores acumulados",
+    )
+    started_at: str | None = Field(None, description="Timestamp de inicio")
+    finished_at: str | None = Field(None, description="Timestamp de fin")
+
+
+class DatasetInfo(BaseModel):
+    """Información de un CSV generado."""
+
+    filename: str
+    path: str
+    year: int
+    doc_type: str
+    size_bytes: int = 0
+
+
+class DatasetListResponse(BaseModel):
+    """Lista de datasets/CSVs disponibles."""
+
+    json_csvs: list[DatasetInfo] = Field(
+        default_factory=list, description="CSVs de metadata JSON"
+    )
+    sentencia_csvs: list[DatasetInfo] = Field(
+        default_factory=list, description="CSVs de texto de sentencias"
+    )
+    auto_csvs: list[DatasetInfo] = Field(
+        default_factory=list, description="CSVs de texto de autos/resoluciones"
+    )
+    total_files: int = Field(0, description="Total de archivos")
+
