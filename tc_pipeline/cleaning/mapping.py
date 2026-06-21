@@ -123,14 +123,35 @@ SENTIDO_CANONICO: dict[str, str] = {
     "improcedente": "Improcedente",
     "fundada": "Fundada",
     "fundado": "Fundada",
-    "improcedente la demanda (autos)": "Improcedente la demanda (Autos)",
-    "improcedente la demanda": "Improcedente la demanda (Autos)",
+    "fundada en parte": "Fundada en parte",
     "infundada": "Infundada",
     "infundado": "Infundada",
+    "infundada / improcedente": "Infundada / improcedente",
+    "improcedente / infundada": "Improcedente / Infundada",
+    "fundada / improcedente": "Fundada / Improcedente",
+    "fundada / infundada": "Fundada / Infundada",
+    "infundada / fundada": "Infundada / Fundada",
+    "improcedente / fundada": "Improcedente / Fundada",
+    "improcedente el rac": "Improcedente el RAC",
+    "improcedente la demanda (autos)": "Improcedente la demanda (Autos)",
+    "improcedente la demanda": "Improcedente la demanda (Autos)",
+    "fundado el desistimiento": "Fundado el desistimiento",
     "nulo": "Nulo",
     "nula": "Nulo",
-    "admitase la demanda en el pj": "admítase la demanda en el PJ",
-    "admítase la demanda en el pj": "admítase la demanda en el PJ",
+    "nulo y admitase la demanda en el pj": "Nulo y admítase la demanda en el PJ",
+    "nulo y admítase la demanda en el pj": "Nulo y admítase la demanda en el PJ",
+    "admitase la demanda en el pj": "Nulo y admítase la demanda en el PJ",
+    "admítase la demanda en el pj": "Nulo y admítase la demanda en el PJ",
+    "admitase la demanda en el tc": "Admítase la demanda en el TC",
+    "admítase la demanda en el tc": "Admítase la demanda en el TC",
+    "nulo el concesorio del rac": "Nulo el Concesorio del RAC",
+    "admite la demanda (pi-ccc)": "Admite la demanda (PI-CCC)",
+    "improcedente la demanda (pi-ccc)": "Improcedente la demanda (PI-CCC)",
+    "inadmisible la demanda (pi-ccc)": "Inadmisible la demanda (PI-CCC)",
+    "admite la medida cautelar": "Admite la medida cautelar",
+    "inadmisible la medida cautelar": "Inadmisible la medida cautelar",
+    "improcedente la medida cautelar": "Improcedente la medida cautelar",
+    "otros": "Otros",
 }
 
 
@@ -290,9 +311,25 @@ def extract_sentido_resolucion(source: dict[str, Any]) -> str:
     if isinstance(sentido, dict):
         valor = sentido.get("nombre", "") or sentido.get("slug", "") or ""
 
-    # 2. Fallback a campo directo
+    # 2. Objeto anidado "sentencia_sentido"
     if not valor:
-        valor = source.get("sentencia_sentido", "") or ""
+        sentencia_sentido = source.get("sentencia_sentido")
+        if isinstance(sentencia_sentido, dict):
+            valor = sentencia_sentido.get("nombre", "") or sentencia_sentido.get("slug", "") or ""
+        elif isinstance(sentencia_sentido, str):
+            valor = sentencia_sentido
+
+    # 3. En caso de estar dentro de sistematizacion
+    if not valor:
+        sistematizacion = source.get("sistematizacion")
+        if isinstance(sistematizacion, list):
+            for s in sistematizacion:
+                if isinstance(s, dict):
+                    s_sentido = s.get("sentido") or s.get("sentencia_sentido")
+                    if isinstance(s_sentido, dict):
+                        valor = s_sentido.get("nombre", "") or s_sentido.get("slug", "") or ""
+                        if valor:
+                            break
 
     if not valor:
         return ""

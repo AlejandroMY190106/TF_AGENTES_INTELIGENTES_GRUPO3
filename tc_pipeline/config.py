@@ -64,9 +64,9 @@ class PipelineConfig:
     pdf_read_timeout: float = 45.0
 
     # ── Política de reintentos ───────────────────────────────────────────
-    max_retries: int = 4
-    retry_base_delay: float = 1.0
-    page_delay: float = 1.0
+    max_retries: int = 10
+    retry_base_delay: float = 5.0
+    page_delay: float = 2.5
     retryable_status_codes: frozenset[int] = field(
         default_factory=lambda: RETRYABLE_STATUS_CODES
     )
