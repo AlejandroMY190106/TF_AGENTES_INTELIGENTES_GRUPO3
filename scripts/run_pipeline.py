@@ -122,11 +122,11 @@ def phase_download(
                 continue
 
         if not items:
-            logger.info("  → Sin registros para %d", year)
+            logger.info("  -> Sin registros para %d", year)
             continue
 
         logger.info(
-            "  → %d items obtenidos (%d sentencias, %d autos)",
+            "  -> %d items obtenidos (%d sentencias, %d autos)",
             len(items),
             sum(1 for r in records if r.get("_doc_type") == "sentencia"),
             sum(1 for r in records if r.get("_doc_type") == "auto-resolucion"),
@@ -138,7 +138,7 @@ def phase_download(
         downloader.save_id_map(year)
 
         logger.info(
-            "  ✓ Año %d: %d descargados, %d existentes, %d errores.",
+            "  [OK] Año %d: %d descargados, %d existentes, %d errores.",
             year,
             metrics.descargados,
             metrics.existentes,

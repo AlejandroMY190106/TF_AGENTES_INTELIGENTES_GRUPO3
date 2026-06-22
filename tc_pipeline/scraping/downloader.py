@@ -289,7 +289,7 @@ class PDFDownloader:
                         (result.expediente, result.error or result.status)
                     )
                     tqdm.write(
-                        f"     ✗ Falló: {result.expediente} "
+                        f"     [X] Falló: {result.expediente} "
                         f"(ID: {result.id_interno}) ({result.status})"
                     )
 
