@@ -213,6 +213,8 @@ class PDFDownloader:
         source = item.get("_source", {})
         expediente = record.get("numero_expediente", "")
         url_pdf = source.get("url_archivo", "") or record.get("url_archivo", "")
+        if url_pdf and not url_pdf.startswith("http"):
+            url_pdf = f"https://{url_pdf}"
         id_interno = record.get("id_interno", "")
         doc_type = record.get("_doc_type", "sentencia")
 
