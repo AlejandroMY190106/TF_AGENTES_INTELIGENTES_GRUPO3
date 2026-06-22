@@ -13,7 +13,7 @@ python-dotenv>=1.0.0
 # =========================================================================
 # Data Processing & Storage
 # =========================================================================
-pandas>=2.1.4
+pandas>=2.1.4,<3.0.0          # Compatibilidad con Python 3.11
 openpyxl>=3.1.0               # Corregido: Versión real de la librería
 pyarrow>=14.0.1               # Parquet format
 sqlalchemy>=2.0.23            # ORM para SQLite (opcional)
@@ -50,7 +50,7 @@ langchain-anthropic>=0.1.5    # Integración de Claude con LangChain
 # =========================================================================
 xgboost>=2.0.3                # XGBoost
 tensorflow>=2.15.0            # Redes neuronales (Keras)
-numpy>=1.24.3
+numpy>=1.24.3,<2.0.0          # Compatibilidad con Python 3.11
 scipy>=1.11.4
 
 # =========================================================================
