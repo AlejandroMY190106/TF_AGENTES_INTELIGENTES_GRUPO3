@@ -189,10 +189,10 @@ def phase_extract(
             try:
                 csv_path = extract_year(year, doc_type, config, id_map)
                 csv_paths.append(csv_path)
-                logger.info("  ✓ %s → %s", doc_type, csv_path)
+                logger.info("  [OK] %s -> %s", doc_type, csv_path)
             except Exception as e:
                 logger.error(
-                    "  ✗ Error extrayendo %s-%d: %s",
+                    "  [X] Error extrayendo %s-%d: %s",
                     doc_type,
                     year,
                     e,
