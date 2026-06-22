@@ -50,6 +50,10 @@ class PipelineConfig:
         "https://jurisbackend.sedetc.gob.pe"
         "/api/visitor/sentencia/busqueda/cronologico"
     )
+    api_url_avanzada: str = (
+        "https://jurisbackend.sedetc.gob.pe"
+        "/api/visitor/sentencia/busqueda/avanzada"
+    )
     user_agent: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "

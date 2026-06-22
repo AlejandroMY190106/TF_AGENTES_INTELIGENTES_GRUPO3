@@ -156,6 +156,7 @@ class TribunalAPIClient:
     def _request_with_retry(
         self,
         params: dict[str, Any],
+        url: str | None = None,
     ) -> dict[str, Any]:
         """Ejecuta un GET a la API con reintentos exponenciales.
 
@@ -164,6 +165,8 @@ class TribunalAPIClient:
 
         Args:
             params: Parámetros de query string para la petición.
+            url: URL del endpoint a consultar. Si no se provee,
+                 usa ``api_url`` (cronológico).
 
         Returns:
             Diccionario parseado del JSON de respuesta.
@@ -173,12 +176,13 @@ class TribunalAPIClient:
             APIRetryExhaustedError: Si se agotan todos los reintentos.
             APIError: Si hay un error inesperado de conexión.
         """
+        target_url = url or self._config.api_url
         last_exception: Exception | None = None
 
         for attempt in range(self._config.max_retries):
             try:
                 response = self.session.get(
-                    self._config.api_url,
+                    target_url,
                     params=params,
                     timeout=self._config.api_timeout,
                 )
@@ -248,7 +252,7 @@ class TribunalAPIClient:
             total_items=pagination.get("total_item", 0),
         )
 
-    # ── Métodos públicos (API original) ──────────────────────────────────
+    # ── Métodos públicos (API cronológica — legacy) ───────────────────────
 
     def fetch_page(
         self,
@@ -256,7 +260,11 @@ class TribunalAPIClient:
         page: int = 1,
         extra_filters: dict[str, Any] | None = None,
     ) -> APIResponse:
-        """Consulta una página específica de resultados para un periodo.
+        """Consulta una página del endpoint **cronológico** (legacy).
+
+        Este endpoint NO devuelve ``sentido`` ni ``sistematizacion``.
+        Se mantiene para compatibilidad.  Para datos completos usar
+        ``fetch_page_avanzada``.
 
         Args:
             fecha_publicacion: Periodo en formato ``"YYYY-MM"``.
@@ -265,9 +273,6 @@ class TribunalAPIClient:
 
         Returns:
             APIResponse con los datos de la página solicitada.
-
-        Raises:
-            APIError: Si la API responde con error.
         """
         params: dict[str, Any] = {
             "fecha_publicacion": fecha_publicacion,
@@ -276,28 +281,53 @@ class TribunalAPIClient:
         if extra_filters:
             params.update(extra_filters)
 
-        logger.debug(
-            "Consultando API: periodo=%s, página=%d",
-            fecha_publicacion,
-            page,
-        )
         raw = self._request_with_retry(params)
-        response = self._parse_response(raw)
+        return self._parse_response(raw)
 
-        logger.debug(
-            "Respuesta: %d items en página %d/%d (total: %d)",
-            len(response.data),
-            page,
-            response.total_pages,
-            response.total_items,
+    # ── Métodos públicos (API avanzada — principal) ──────────────────────
+
+    def fetch_page_avanzada(
+        self,
+        fecha_publicacion: str,
+        page: int = 1,
+    ) -> APIResponse:
+        """Consulta una página del endpoint de **búsqueda avanzada**.
+
+        Este endpoint devuelve campos enriquecidos: ``sentido``,
+        ``sistematizacion``, ``tesaurio``, ``tipo``, etc.
+
+        Args:
+            fecha_publicacion: Periodo en formato ``"YYYY-MM"``.
+            page: Número de página (1-indexed).
+
+        Returns:
+            APIResponse con datos enriquecidos.
+        """
+        params: dict[str, Any] = {
+            "page": page,
+            "search": "",
+            "numero_expediente": "",
+            "nombre_demandante": "",
+            "nombre_demandado": "",
+            "fecha_publicacion": fecha_publicacion,
+            "sentencia_sentido": "",
+            "id_sentencia_distrito": "",
+            "id_sentencia_sala": "",
+            "id_sentencia_tipo": "",
+            "palabras_claves": "",
+            "palabras": "",
+        }
+
+        raw = self._request_with_retry(
+            params, url=self._config.api_url_avanzada
         )
-        return response
+        return self._parse_response(raw)
 
     def fetch_period(self, periodo: str) -> list[dict[str, Any]]:
-        """Descarga todas las páginas de un periodo dado.
+        """Descarga todas las páginas de un periodo usando búsqueda avanzada.
 
-        Itera página por página hasta cubrir ``total_pages``, acumulando
-        todos los expedientes.  Respeta ``page_delay`` entre peticiones.
+        Usa el endpoint ``/busqueda/avanzada`` que retorna campos
+        enriquecidos incluyendo ``sentido`` para el sentido de resolución.
 
         Args:
             periodo: Periodo en formato ``"YYYY-MM"``.
@@ -306,7 +336,7 @@ class TribunalAPIClient:
             Lista de todos los expedientes del periodo.
         """
         all_items: list[dict[str, Any]] = []
-        first_page = self.fetch_page(periodo, page=1)
+        first_page = self.fetch_page_avanzada(periodo, page=1)
 
         if first_page.total_items == 0:
             logger.info("Periodo %s: sin registros.", periodo)
@@ -324,7 +354,7 @@ class TribunalAPIClient:
 
         for page in range(2, total_pages + 1):
             time.sleep(self._config.page_delay)
-            response = self.fetch_page(periodo, page=page)
+            response = self.fetch_page_avanzada(periodo, page=page)
             all_items.extend(response.data)
 
         logger.info(
