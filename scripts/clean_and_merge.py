@@ -17,8 +17,6 @@ SENTENCIA_EXTRACT = ROOT / "sentencia-Extract"
 AUTO_EXTRACT = ROOT / "auto-resolucion-Extract"
 MERGED_DIR = ROOT / "merged"
 MERGED_DIR.mkdir(parents=True, exist_ok=True)
-MERGED_CSV = MERGED_DIR / "expedientes_cleaned_1992-2026.csv"
-REPORT_MD = Path("docs") / "cleaning-merge-report.md"
 
 
 COMMON_TOKENS = [
@@ -67,10 +65,19 @@ def is_noisy(text: str) -> bool:
 
 
 def extract_text_from_record(rec: dict) -> str:
-    # Prefer 'fundamentos', then attachment.content, then any field containing 'texto'
-    for k in ("fundamentos", "FUNDAMENTOS"):
+    # Prefer 'antecedentes' or 'asunto' (secciones PDF extraídas), then other text sources
+    for k in ("antecedentes", "ANTECEDENTES", "asunto", "ASUNTO"):
         if k in rec and rec[k]:
-            return str(rec[k])
+            val = str(rec[k]).strip()
+            if val and val.lower() != "nan":
+                return val
+
+    # Fallback: try fundamentos or visto (campos JSON alternativos)
+    for k in ("fundamentos", "FUNDAMENTOS", "visto", "VISTO"):
+        if k in rec and rec[k]:
+            val = str(rec[k]).strip()
+            if val and val.lower() != "nan":
+                return val
 
     att = rec.get("attachment") or rec.get("attachment.content")
     if isinstance(att, dict) and att.get("content"):
@@ -81,7 +88,9 @@ def extract_text_from_record(rec: dict) -> str:
     # fallback: find any key with 'texto' or 'content'
     for k, v in rec.items():
         if v and ("texto" in k.lower() or "content" in k.lower()):
-            return str(v)
+            val = str(v).strip()
+            if val and val.lower() != "nan":
+                return val
 
     return ""
 
@@ -158,40 +167,22 @@ def main() -> None:
         return
 
     df_merged = pd.DataFrame(all_rows)
-    df_merged.to_csv(MERGED_CSV, index=False, encoding="utf-8")
 
-    # summary
+    generated_files = []
+    for year, group in sorted(df_merged.groupby("year")):
+        year_csv = MERGED_DIR / f"expedientes_cleaned_{year}.csv"
+        group.to_csv(year_csv, index=False, encoding="utf-8")
+        generated_files.append(str(year_csv))
+
     summary = {
         "total_records": len(df_merged),
         "by_year": df_merged.groupby("year").size().to_dict(),
         "noisy_count": int(df_merged["noisy"].sum()),
         "reversed_fixed": int(df_merged["reversed_fixed"].sum()),
         "excluded_years": sorted(list(EXCLUDE_YEARS)),
+        "generated_files": generated_files,
     }
 
-    md_lines = [
-        "# Cleaning & Merge Report",
-        "",
-        "## Resumen",
-        "",
-        f"Registros procesados: **{summary['total_records']}**",
-        f"Años excluidos: {', '.join(map(str, summary['excluded_years']))}",
-        "",
-        "## Estadísticas por año",
-        "",
-    ]
-    for y, c in sorted(summary["by_year"].items()):
-        md_lines.append(f"- {y}: {c} registros")
-
-    md_lines.extend([
-        "",
-        f"Registros marcados como ruidosos: **{summary['noisy_count']}**",
-        f"Registros corregidos por texto invertido: **{summary['reversed_fixed']}**",
-        "",
-        f"CSV unificado generado en: `{MERGED_CSV}`",
-    ])
-
-    REPORT_MD.write_text("\n".join(md_lines), encoding="utf-8")
     print("Limpieza y merge completados.")
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 

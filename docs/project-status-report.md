@@ -121,7 +121,7 @@ Se ha completado la revisión integral del **script de limpieza y merge** (`scri
 |--------|-------|
 | **Entrada primaria** | `data/sentencia-Extract/` y `data/auto-resolucion-Extract/` (CSVs con JSONs extraídos) |
 | **Entrada secundaria** | Metadatos de número de expediente y año |
-| **Salida principal** | `data/merged/expedientes_cleaned_1992-2026.csv` |
+| **Salida principal** | `data/merged/expedientes_cleaned_{year}.csv` por año, generados en `data/merged/` |
 | **Salida secundaria** | `docs/cleaning-merge-report.md` (estadísticas de limpieza) |
 | **Exclusión de años** | 2004-2010 (como se requirió) |
 | **Período cubierto** | 1992-2003, 2011-2026 |
@@ -184,7 +184,7 @@ Genera salida CSV con columnas:
   - original_len, cleaned_len
   - noisy, reversed_fixed (flags)
     ↓
-CSV consolidado → data/merged/expedientes_cleaned_1992-2026.csv
+CSV por año → data/merged/expedientes_cleaned_{year}.csv (uno por cada año procesado)
 Report MD → docs/cleaning-merge-report.md
 ```
 
@@ -193,7 +193,7 @@ Report MD → docs/cleaning-merge-report.md
 | Parámetro | Valor por defecto | Ubicación | Propósito |
 |-----------|------------------|-----------|----------|
 | `EXCLUDE_YEARS` | 2004-2010 | Línea 16 | Años a excluir |
-| `MERGED_CSV` | `data/merged/expedientes_cleaned_1992-2026.csv` | Línea 21 | Ruta de salida CSV |
+| `MERGED_CSV` | Removed; now generated per-year in `data/merged/expedientes_cleaned_{year}.csv` | Línea 21 | Ruta de salida CSV |
 | `REPORT_MD` | `docs/cleaning-merge-report.md` | Línea 22 | Ruta de reporte |
 | `COMMON_TOKENS` | Lista de 7 tokens | Línea 25-32 | Tokens para detectar inversión |
 | Umbral ruido | 0.45 (45%) | `is_noisy()` línea 64 | Proporción max de no-letras |
@@ -242,7 +242,7 @@ Se ajustaron versiones máximas para **compatibilidad explícita con Python 3.11
 ## 📊 Salidas Esperadas
 
 ### 1. CSV Consolidado
-**Archivo:** `data/merged/expedientes_cleaned_1992-2026.csv`
+**Archivo:** `data/merged/expedientes_cleaned_{year}.csv` (uno por año procesado)
 
 **Columnas:**
 ```
@@ -318,7 +318,7 @@ from scripts.clean_and_merge import process_dir, clean_text_block
 
 Una vez ejecutado `clean_and_merge.py`:
 
-1. **CSV consolidado** (`data/merged/expedientes_cleaned_1992-2026.csv`)
+1. **CSVs por año** (`data/merged/expedientes_cleaned_{year}.csv`)
    - Entrada para **chunking y embeddings** (Fase 3)
    - Entrada para **feature engineering** (Fase 3)
 
@@ -337,7 +337,7 @@ Una vez ejecutado `clean_and_merge.py`:
 1. **Verificar salida CSV:**
    ```bash
    # Inspeccionar primeras filas
-   python -c "import pandas as pd; df=pd.read_csv('data/merged/expedientes_cleaned_1992-2026.csv'); print(df.head(10))"
+   python -c "import pandas as pd; df=pd.read_csv('data/merged/expedientes_cleaned_2023.csv'); print(df.head(10))"  # usa cualquier año disponible en data/merged/
    ```
 
 2. **Revisar reporte:**
@@ -367,3 +367,56 @@ Una vez ejecutado `clean_and_merge.py`:
 ---
 
 **Status:** ✅ **LISTO PARA EJECUTAR**
+
+---
+
+# Cleaning & Merge Report — Resultados de Ejecución Fase 2
+
+**Fecha de ejecución:** 2026-06-22
+
+## Resumen
+
+Registros procesados: **50905**
+Años excluidos: 2004, 2005, 2006, 2007, 2008, 2009, 2010
+
+## Estadísticas por año
+
+- 1996: 80 registros
+- 1997: 515 registros
+- 1998: 1105 registros
+- 1999: 1286 registros
+- 2000: 1620 registros
+- 2001: 585 registros
+- 2002: 1115 registros
+- 2003: 3347 registros
+- 2011: 1275 registros
+- 2012: 1036 registros
+- 2013: 2551 registros
+- 2014: 4713 registros
+- 2015: 1569 registros
+- 2016: 1259 registros
+- 2017: 1578 registros
+- 2018: 2453 registros
+- 2019: 2180 registros
+- 2020: 1652 registros
+- 2021: 3616 registros
+- 2022: 3105 registros
+- 2023: 4452 registros
+- 2024: 4377 registros
+- 2025: 4947 registros
+- 2026: 489 registros
+
+## Métricas de Limpieza
+
+- Registros con texto limpio: **27,356 (53.7%)**
+- Registros marcados como ruidosos: **23,550 (46.3%)**
+- Registros corregidos por texto invertido: **0**
+- Tamaño original promedio: **2,403 caracteres/registro**
+- Tamaño limpio promedio: **2,361 caracteres/registro**
+- Reducción promedio: **1.7%**
+
+## Archivos Generados
+
+CSVs por año: `data/merged/expedientes_cleaned_{year}.csv` (1 archivo por cada año procesado)
+- 10 columnas con metadatos y flags de auditoría
+- Listo para chunking, embeddings e indexación en Fase 3
