@@ -50,6 +50,10 @@ class PipelineConfig:
         "https://jurisbackend.sedetc.gob.pe"
         "/api/visitor/sentencia/busqueda/cronologico"
     )
+    api_url_avanzada: str = (
+        "https://jurisbackend.sedetc.gob.pe"
+        "/api/visitor/sentencia/busqueda/avanzada"
+    )
     user_agent: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -64,16 +68,26 @@ class PipelineConfig:
     pdf_read_timeout: float = 45.0
 
     # ── Política de reintentos ───────────────────────────────────────────
-    max_retries: int = 4
-    retry_base_delay: float = 1.0
-    page_delay: float = 1.0
+    max_retries: int = 10
+    retry_base_delay: float = 5.0
+    page_delay: float = 2.5
     retryable_status_codes: frozenset[int] = field(
         default_factory=lambda: RETRYABLE_STATUS_CODES
     )
 
-    # ── Descargas ────────────────────────────────────────────────────────
+    # ── Descargas (legacy) ───────────────────────────────────────────────
     download_root: Path = Path("EXPEDIENTES")
     max_workers: int = 10
+
+    # ── Nuevas rutas de datos (pipeline CSV) ─────────────────────────────
+    csv_output_root: Path = Path("data/csv")
+    sentencia_raw_root: Path = Path("data/sentencia-raw")
+    auto_resolucion_raw_root: Path = Path("data/auto-resolucion-raw")
+    sentencia_extract_root: Path = Path("data/sentencia-Extract")
+    auto_resolucion_extract_root: Path = Path("data/auto-resolucion-Extract")
+
+    # ── Extracción de PDF ────────────────────────────────────────────────
+    pdf_extraction_timeout: float = 30.0  # Timeout por PDF individual (segundos)
 
     # ── Manifiesto SQLite ────────────────────────────────────────────────
     manifest_db: Path = Path("data/manifests/pipeline_state.db")

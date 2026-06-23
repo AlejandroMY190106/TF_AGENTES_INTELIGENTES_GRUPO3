@@ -22,8 +22,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from tc_pipeline.api.routes import router, set_parquet_store
-from tc_pipeline.storage.parquet_store import ParquetStore
+from tc_pipeline.api.routes import router
+from tc_pipeline.config import PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -45,23 +45,17 @@ async def lifespan(app: FastAPI):
     # ── Startup ──────────────────────────────────────────────────────
     logger.info("🚀 Iniciando API del Sistema Multiagente TC...")
 
-    # Configurar Parquet store
-    parquet_path = Path("data/raw/expedientes_tc.parquet")
-    store = ParquetStore(parquet_path)
-    set_parquet_store(store)
-
-    if store.exists:
-        stats = store.get_stats()
-        logger.info(
-            "📊 Dataset cargado: %d expedientes",
-            stats.get("total_expedientes", 0),
-        )
-    else:
-        logger.warning(
-            "⚠️  Dataset no encontrado en %s. "
-            "Ejecute: python scripts/collect_metadata.py",
-            parquet_path,
-        )
+    # Crear estructura de directorios para el pipeline CSV
+    config = PipelineConfig()
+    for dir_path in [
+        config.csv_output_root,
+        config.sentencia_raw_root,
+        config.auto_resolucion_raw_root,
+        config.sentencia_extract_root,
+        config.auto_resolucion_extract_root,
+    ]:
+        dir_path.mkdir(parents=True, exist_ok=True)
+    logger.info("📁 Estructura de directorios del pipeline verificada.")
 
     yield
 

@@ -13,8 +13,8 @@ def config(tmp_path):
 
 def test_build_path(config):
     downloader = PDFDownloader(config)
-    path = downloader.build_path("01234/2025 AA", "2025-01")
-    assert path == config.download_root / "2025" / "01" / "01234_2025AA.pdf"
+    path = downloader.build_path("12345", "sentencia", 2025)
+    assert path == config.sentencia_raw_root / "2025" / "12345.pdf"
 
 @patch("requests.get")
 def test_download_pdf_success(mock_get, config):
@@ -61,12 +61,17 @@ def test_download_batch(mock_get, config):
     
     downloader = PDFDownloader(config)
     items = [
-        {"_source": {"numero_expediente": "1", "url_archivo": "http://1.pdf"}},
-        {"_source": {"numero_expediente": "2", "url_archivo": "http://2.pdf"}},
-        {"_source": {"numero_expediente": "", "url_archivo": ""}} # Inválido
+        {"_source": {"url_archivo": "http://1.pdf"}},
+        {"_source": {"url_archivo": "http://2.pdf"}},
+        {"_source": {}} # Inválido
+    ]
+    records = [
+        {"id_interno": "1", "numero_expediente": "1", "url_archivo": "http://1.pdf", "_doc_type": "sentencia"},
+        {"id_interno": "2", "numero_expediente": "2", "url_archivo": "http://2.pdf", "_doc_type": "sentencia"},
+        {"id_interno": "", "numero_expediente": "", "url_archivo": "", "_doc_type": "sentencia"} # Inválido
     ]
     
-    metrics = downloader.download_batch(items, "2025-01")
+    metrics = downloader.download_batch(items, records, 2025)
     
     assert metrics.descargados == 1
     assert metrics.errores == 2
