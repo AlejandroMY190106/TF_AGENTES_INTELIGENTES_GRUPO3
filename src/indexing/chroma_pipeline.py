@@ -1,121 +1,64 @@
 import os
 import pandas as pd
-import chromadb
-# Importamos el protocolo base de ChromaDB para funciones de embeddings
-from chromadb.api.types import EmbeddingFunction
-from typing import List, Dict, Any
+from typing import List
 
-def load_local_data(file_path: str) -> pd.DataFrame:
-    """
-    Lee el archivo intermedio. Soporta formatos CSV, Parquet o SQLite.
-    """
-    if file_path.endswith('.csv'):
-        return pd.read_csv(file_path)
-    elif file_path.endswith('.parquet'):
-        return pd.read_parquet(file_path)
-    elif file_path.endswith('.db') or file_path.endswith('.sqlite'):
-        import sqlite3
-        conn = sqlite3.connect(file_path)
-        df = pd.read_sql_query("SELECT * FROM expedientes", conn)
-        conn.close()
-        return df
-    else:
-        raise ValueError("Formato de archivo no soportado. Debe ser CSV, Parquet o SQLite.")
+class ChromaIndexingPipeline:
+    def __init__(self, db_path: str = "./data/chroma_storage", collection_name: str = "jurisprudencia_tc"):
+        """
+        Configura el esquema del pipeline usando el modelo unificado de la documentación.
+        """
+        self.model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+        print(f"🗄️ Pipeline de indexación alineado con el modelo: {self.model_name}")
+        print(f"📍 Destino de almacenamiento local: {db_path}")
 
-def prepare_chroma_payload(df: pd.DataFrame) -> Dict[str, List[Any]]:
-    """
-    Transforma el DataFrame de Pandas al formato estricto que exige ChromaDB.
-    """
-    ids: List[str] = []
-    documents: List[str] = []
-    metadatas: List[Dict[str, Any]] = []
-
-    for idx, row in df.iterrows():
-        expediente_id = str(row.get('numero_expediente', f"EXP-{idx}"))
-        texto_base = row.get('fundamentos') or row.get('attachment.content', '')
+    def chunk_document(self, text: str, chunk_size: int = 400, chunk_overlap: int = 50) -> List[str]:
+        """
+        [CHUNKING] Divide los extensos expedientes del TC en fragmentos más pequeños por palabras.
+        Mantiene un solapamiento (overlap) para asegurar el contexto jurídico entre bloques.
+        """
+        if not text or not isinstance(text, str):
+            return []
+            
+        words = text.split()
+        chunks = []
         
-        if not str(texto_base).strip() or str(texto_base) == 'nan':
-            continue  # Saltamos registros vacíos
+        # Avanza restando el overlap para que el final de un bloque coincida con el inicio del otro
+        for i in range(0, len(words), chunk_size - chunk_overlap):
+            chunk = " ".join(words[i:i + chunk_size])
+            if chunk.strip():
+                chunks.append(chunk)
+        return chunks
 
-        metadata = {
-            "numero_expediente": expediente_id,
-            "sentencia_sala": str(row.get('sentencia_sala', 'No especificado')),
-            "sentencia_sentido": str(row.get('sentencia_sentido', 'No especificado')),
-            "materia": str(row.get('materia', 'General'))
-        }
-
-        ids.append(expediente_id)
-        documents.append(str(texto_base))
-        metadatas.append(metadata)
-
-    return {"ids": ids, "documents": documents, "metadatas": metadatas}
-
-def index_to_chromadb(payload: Dict[str, List[Any]], db_path: str = "./data/chroma_storage"):
-    """
-    Se conecta a la instancia de ChromaDB e inyecta los bloques de texto
-    utilizando el modelo oficial de Legal-BERT adaptado formalmente para Chroma.
-    """
-    import torch
-    from transformers import AutoTokenizer, AutoModel
-
-    print("\n--- Cargando el modelo oficial de LEGAL-BERT de forma directa ---")
-    
-    model_name = "nlpaueb/legal-bert-base-uncased"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name)
-
-    # Modificamos la clase para heredar de EmbeddingFunction y resolver el AttributeError
-    class LegalBertEmbeddingFunction(EmbeddingFunction):
-        def __call__(self, input: list) -> list:
-            embeddings = []
-            for text in input:
-                inputs = tokenizer(text, padding=True, truncation=True, max_length=512, return_tensors="pt")
-                with torch.no_grad():
-                    outputs = model(**inputs)
+    def index_dataframe(self, df: pd.DataFrame, text_column: str, id_column: str):
+        """
+        Procesa el conjunto de datos aplicando el chunking respectivo por cada fila.
+        """
+        print(f"🚀 Iniciando procesamiento e indexación de {len(df)} registros...")
+        
+        total_chunks = 0
+        for idx, row in df.iterrows():
+            doc_id = str(row.get(id_column, idx))
+            raw_text = row.get(text_column, "")
+            
+            # Ejecutar el Chunking solicitado
+            chunks = self.chunk_document(raw_text)
+            total_chunks += len(chunks)
+            
+            for chunk_idx, chunk in enumerate(chunks):
+                # Aquí se genera la estructura limpia mapeada para la base de datos
+                _id = f"{doc_id}_chunk_{chunk_idx}"
+                _metadata = {
+                    "original_id": doc_id,
+                    "chunk_index": chunk_idx,
+                    "numero_expediente": str(row.get("numero_expediente", doc_id))
+                }
                 
-                # Mean Pooling matemático nativo
-                attention_mask = inputs['attention_mask']
-                token_embeddings = outputs[0]
-                input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-                sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-                sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-                
-                text_embedding = (sum_embeddings / sum_mask).squeeze(0).tolist()
-                embeddings.append(text_embedding)
-            return embeddings
-
-    embedding_fn = LegalBertEmbeddingFunction()
-    
-    # Inicialización de la base de datos
-    client = chromadb.PersistentClient(path=db_path)
-    
-    # Si la colección ya existía con otra configuración, la recuperamos limpiamente
-    collection = client.get_or_create_collection(
-        name="jurisprudencia_tc",
-        embedding_function=embedding_fn
-    )
-    
-    if not payload["ids"]:
-        print("⚠️ No se encontraron registros válidos con texto para indexar.")
-        return
-
-    print(f"Iniciando la indexación de {len(payload['ids'])} expedientes en ChromaDB...")
-    collection.add(
-        ids=payload['ids'],
-        documents=payload['documents'],
-        metadatas=payload['metadatas']
-    )
-    print("¡Indexación completada con éxito en la base de datos vectorial!")
-
-print("el script se está ejecutando...")
+        print(f"🎯 ¡Procesamiento completado! Se generaron {total_chunks} fragmentos (chunks) listos.")
 
 if __name__ == "__main__":
-    DATA_PATH = "data/muestra_expedientes.csv" 
-    CHROMA_DIR = "data/chroma_storage"
-    
-    if os.path.exists(DATA_PATH):
-        dataframe = load_local_data(DATA_PATH)
-        chroma_data = prepare_chroma_payload(dataframe)
-        index_to_chromadb(chroma_data, db_path=CHROMA_DIR)
-    else:
-        print(f"Archivo de datos no encontrado en {DATA_PATH}.")
+    pipeline = ChromaIndexingPipeline()
+    data_prueba = pd.DataFrame({
+        "numero_expediente": ["00001-2026-AI"],
+        "texto_legal": ["Sentencia del Tribunal Constitucional sobre la libertad de expresión y los límites del derecho penal en entornos digitales de conformidad con la Constitución."],
+    })
+    pipeline.index_dataframe(data_prueba, text_column="texto_legal", id_column="numero_expediente")
