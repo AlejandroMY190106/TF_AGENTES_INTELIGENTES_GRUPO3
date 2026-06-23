@@ -50,8 +50,9 @@ langchain-anthropic>=0.1.5    # Integración de Claude con LangChain
 # =========================================================================
 xgboost>=2.0.3                # XGBoost
 tensorflow>=2.15.0            # Redes neuronales (Keras)
-numpy>=1.24.3,<2.0.0          # Compatibilidad con Python 3.11
+numpy>=1.24.3,<3.0.0          # Compatibilidad con Python 3.11/3.12
 scipy>=1.11.4
+protobuf>=5.0,<7.0            # Requerido por opentelemetry-proto y TensorFlow
 
 # =========================================================================
 # Logging & Monitoring

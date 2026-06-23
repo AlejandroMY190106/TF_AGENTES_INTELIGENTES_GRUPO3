@@ -3,10 +3,11 @@ Project Status Report
 
 Resumen de avance
 -----------------
-- Fase 1 (extracción y mapeo) está implementada de forma sólida.
-- El repositorio cuenta con scripts de scraping, descarga, extracción y mapeo.
-- FastAPI está presente y levanta endpoints de salud, scraping masivo y datasets.
-- Los endpoints de Fase 2/3/4 (`/ingest`, `/query`, `/prediccion`) aún son stubs que devuelven HTTP 501.
+- Fase 1 (extracción y mapeo) está implementada y operativa en gran parte.
+- El repositorio tiene scripts de scraping, descarga, extracción, limpieza y mapeo.
+- FastAPI expone `/api/v1/health`, `/api/v1/datasets` y el scraping masivo en `/api/v1/scraping/...`.
+- No hay endpoints operativos para `/expedientes` o `/expedientes/{numero}`.
+- Los endpoints de Fase 2/3/4 (`/ingest`, `/query`, `/prediccion`) siguen siendo stubs que devuelven HTTP 501.
 
 Estado por fase del plan
 ------------------------
@@ -67,30 +68,33 @@ Raw PDF coverage
 - `data/auto-resolucion-raw/` contiene directorios para 1996-2003, pero no hay PDFs dentro.
 
 Extracción de texto / CSV de salida
-- `data/sentencia-Extract/` tiene al menos un CSV por año para 1992-2003 y 2011-2026.
-- `data/auto-resolucion-Extract/` tiene al menos un CSV por año para 1992-2003 y 2011-2026.
+- `data/sentencia-Extract/` tiene al menos un CSV por año para 2004-2010 en el periodo actual de procesamiento.
+- `data/auto-resolucion-Extract/` tiene al menos un CSV por año para 2004-2010 en el periodo actual de procesamiento.
 
 Cobertura efectiva por año
 --------------------------
-- Periodo con metadata disponible: 1992-2026.
-- Periodo con probablemente contenido textual extraído y datos concretos: 1996-2026.
-- Periodo con PDF raw disponible para sentencias: 1996-2003.
+- Periodo con metadata disponible: 1992-2026.  
+- Periodo con contenido ABIERTO para este proceso: 2004-2010.  
+- Periodo con PDF raw disponible para sentencias: 1996-2003.  
 - Periodo con PDFs de autos/resoluciones aún no descargados o no disponibles en el almacenamiento actual.
 
 Hallazgos clave
 ----------------
-- La cobertura de datos no es uniforme: los primeros años (1992-1995) están presentes solo como archivos CSV vacíos.
-- El núcleo de la extracción ha alcanzado el periodo 1996-2026 para metadata, pero la persistencia completa de PDFs está limitada a 1996-2003.
-- Existe una instancia de ChromaDB en `data/chroma_storage/`, lo que indica trabajo previo de indexación, aunque no hay endpoint RAG implementado.
-- Hay inconsistencias entre documentación y código en la elección de modelo de embeddings:
+- La cobertura de datos no es uniforme: los primeros años (1992-1995) tienen CSVs vacíos o metadata parcial.
+- La extracción de metadata cubre 1996-2026, pero los PDFs raw descargados están presentes principalmente en `data/sentencia-raw/` para 1996-2003; `data/auto-resolucion-raw/` incluye directorios 1996-2003 con menos certeza de archivos completos.
+- Hay una instancia de ChromaDB en `data/chroma_storage/`, pero no existe aún un endpoint RAG operativo ni un flujo `/query` real.
+- El backend no implementa `/expedientes`; el contrato está definido en schemas pero no expuesto.
+- La documentación de embeddings y el código divergen:
   - `docs/embedding_model_selection.md` recomienda `paraphrase-multilingual-MiniLM-L12-v2`.
-  - `src/indexing/chroma_pipeline.py` todavía usa `nlpaueb/legal-bert-base-uncased`.
-  - `tc_pipeline/nlp/embeddings.py` por defecto usa `all-MiniLM-L6-v2`.
+  - `src/indexing/chroma_pipeline.py` implementa un embedding directo con `nlpaueb/legal-bert-base-uncased`.
+  - `tc_pipeline/nlp/embeddings.py` usa por defecto `all-MiniLM-L6-v2`.
+- El entorno actual del desarrollador es Python 3.12.10 con `numpy 2.5.0`, `pandas 2.3.3`, `sentence-transformers 5.6.0`, `transformers 5.12.1`, `torch 2.12.1` y `tensorflow 2.21.0`; esto no coincide con la recomendación de Python 3.11.15 ni con el límite de `numpy<2.0.0` en `requirements.txt`.
 
 Recomendación rápida
 --------------------
-- Consolidar primero la Fase 2: validar dataset curado, unificar modelo de embeddings y exponer realmente `/ingest` y `/expedientes`.
-- Luego avanzar a Fase 3 integrando ChromaDB + RAG con un LLM.
+- Consolidar primero la Fase 2: validar el dataset curado, unificar el modelo de embeddings y exponer realmente `/ingest` y `/expedientes`.
+- Corregir la brecha de entorno: alinear Python y dependencias con `requirements.txt` o actualizar los límites de paquetes críticos como `numpy` y `protobuf`.
+- Luego avanzar a Fase 3 integrando ChromaDB + RAG con un LLM y un endpoint `/query` operativo.
 - Finalmente, materializar la Fase 4 con el dataset de features y el endpoint `/prediccion`.
 
 ---
@@ -104,12 +108,12 @@ Recomendación rápida
 
 ## 📋 Resumen Ejecutivo
 
-Se ha completado la revisión integral del **script de limpieza y merge** (`scripts/clean_and_merge.py`) y la **validación de dependencias** en `requirements.txt`. El script está **listo para ejecutar** y cubre todos los requisitos especificados:
+Se ha completado la revisión integral del **script de limpieza y merge** (`scripts/clean_and_merge.py`) y la **validación de dependencias** en `requirements.txt`. El script está **listo para ejecutar** y cubre los requisitos funcionales especificados:
 
 ✅ Limpieza robusta de PDFs con manejo de caracteres ilegibles, saltos de línea y texto invertido  
-✅ Unión de datos JSON y PDFs en CSV consolidado  
-✅ Exclusión de años 2004-2010 (como se especificó)  
-✅ Todas las dependencias presentes y compatibles con Python 3.11.15  
+✅ Unión de datos JSON y PDFs en CSV por año  
+✅ Procesamiento exclusivo de años 2004-2010  
+✅ Dependencies audited, with `requirements.txt` updated to support Python 3.11/3.12 and the `protobuf<7.0` constraint
 
 ---
 
@@ -123,8 +127,8 @@ Se ha completado la revisión integral del **script de limpieza y merge** (`scri
 | **Entrada secundaria** | Metadatos de número de expediente y año |
 | **Salida principal** | `data/merged/expedientes_cleaned_{year}.csv` por año, generados en `data/merged/` |
 | **Salida secundaria** | `docs/cleaning-merge-report.md` (estadísticas de limpieza) |
-| **Exclusión de años** | 2004-2010 (como se requirió) |
-| **Período cubierto** | 1992-2003, 2011-2026 |
+| **Años procesados** | 2004-2010 |
+| **Período cubierto** | 2004-2010 |
 
 ### Funcionalidades de Limpieza Implementadas
 
@@ -165,7 +169,7 @@ def is_noisy(text: str) -> bool:
 ```
 CSV Input (sentencia-Extract/ o auto-resolucion-Extract/)
     ↓
-Lee CSVs por año (excluye 2004-2010)
+Lee CSVs por año (solo 2004-2010)
     ↓
 Para cada registro:
     - Extrae texto de fundamentos/attachment
@@ -192,7 +196,7 @@ Report MD → docs/cleaning-merge-report.md
 
 | Parámetro | Valor por defecto | Ubicación | Propósito |
 |-----------|------------------|-----------|----------|
-| `EXCLUDE_YEARS` | 2004-2010 | Línea 16 | Años a excluir |
+| `PROCESS_YEARS` | 2004-2010 | Línea 16 | Años a procesar |
 | `MERGED_CSV` | Removed; now generated per-year in `data/merged/expedientes_cleaned_{year}.csv` | Línea 21 | Ruta de salida CSV |
 | `REPORT_MD` | `docs/cleaning-merge-report.md` | Línea 22 | Ruta de reporte |
 | `COMMON_TOKENS` | Lista de 7 tokens | Línea 25-32 | Tokens para detectar inversión |
@@ -376,44 +380,14 @@ Una vez ejecutado `clean_and_merge.py`:
 
 ## Resumen
 
-Registros procesados: **50905**
-Años excluidos: 2004, 2005, 2006, 2007, 2008, 2009, 2010
+El script `scripts/clean_and_merge.py` está configurado para procesar exclusivamente los años 2004-2010.
+El directorio `data/merged/` contiene CSVs ya generados para los años 1996-2026 a partir de ejecuciones previas, pero la configuración actual no re-procesa años fuera de 2004-2010.
 
-## Estadísticas por año
+## Uso actual
 
-- 1996: 80 registros
-- 1997: 515 registros
-- 1998: 1105 registros
-- 1999: 1286 registros
-- 2000: 1620 registros
-- 2001: 585 registros
-- 2002: 1115 registros
-- 2003: 3347 registros
-- 2011: 1275 registros
-- 2012: 1036 registros
-- 2013: 2551 registros
-- 2014: 4713 registros
-- 2015: 1569 registros
-- 2016: 1259 registros
-- 2017: 1578 registros
-- 2018: 2453 registros
-- 2019: 2180 registros
-- 2020: 1652 registros
-- 2021: 3616 registros
-- 2022: 3105 registros
-- 2023: 4452 registros
-- 2024: 4377 registros
-- 2025: 4947 registros
-- 2026: 489 registros
-
-## Métricas de Limpieza
-
-- Registros con texto limpio: **27,356 (53.7%)**
-- Registros marcados como ruidosos: **23,550 (46.3%)**
-- Registros corregidos por texto invertido: **0**
-- Tamaño original promedio: **2,403 caracteres/registro**
-- Tamaño limpio promedio: **2,361 caracteres/registro**
-- Reducción promedio: **1.7%**
+- Ejecutar `python scripts/clean_and_merge.py` generará un CSV por año en `data/merged/expedientes_cleaned_{year}.csv` para cada año en 2004-2010.
+- Los registros sin texto válido se omiten de la salida final.
+- El reporte de ejecución `docs/cleaning-merge-report.md` se sobrescribe en cada ejecución.
 
 ## Archivos Generados
 

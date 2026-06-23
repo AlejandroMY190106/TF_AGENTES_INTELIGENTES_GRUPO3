@@ -11,7 +11,7 @@ from tc_pipeline.extraction.pdf_extractor import normalize_text, clean_extracted
 from tc_pipeline.nlp.processing import clean_text
 
 
-EXCLUDE_YEARS = set(range(2004, 2011))  # 2004-2010 excluded
+PROCESS_YEARS = set(range(2004, 2011))  # Only process 2004-2010
 ROOT = Path("data")
 SENTENCIA_EXTRACT = ROOT / "sentencia-Extract"
 AUTO_EXTRACT = ROOT / "auto-resolucion-Extract"
@@ -120,7 +120,7 @@ def process_dir(extract_root: Path, doc_type: str):
         if not year_path.is_dir() or not year_path.name.isdigit():
             continue
         year = int(year_path.name)
-        if year in EXCLUDE_YEARS:
+        if year not in PROCESS_YEARS:
             continue
 
         for csv_file in sorted(year_path.glob("*.csv")):
@@ -179,7 +179,7 @@ def main() -> None:
         "by_year": df_merged.groupby("year").size().to_dict(),
         "noisy_count": int(df_merged["noisy"].sum()),
         "reversed_fixed": int(df_merged["reversed_fixed"].sum()),
-        "excluded_years": sorted(list(EXCLUDE_YEARS)),
+        "processed_years": sorted(list(PROCESS_YEARS)),
         "generated_files": generated_files,
     }
 
