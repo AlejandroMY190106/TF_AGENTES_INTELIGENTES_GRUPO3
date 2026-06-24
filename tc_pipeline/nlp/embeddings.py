@@ -1,7 +1,19 @@
+"""
+tc_pipeline/nlp/embeddings.py
+─────────────────────────────
+Módulo Lógico de Vectorización.
+
+Responsabilidad Arquitectónica: 
+Este módulo abstrae la generación de embeddings utilizando `SentenceTransformers`.
+Está diseñado para ser importado por orquestadores (como `chroma_pipeline.py`) para servir
+como función de embedding (EmbeddingFunction), así como proveer utilidades estandarizadas 
+para el cálculo de métricas de calidad de los vectores (dimensiones, similitud, etc.).
+
+NO realiza operaciones de Entrada/Salida (I/O) sobre bases de datos ni lee archivos CSV.
+"""
 from __future__ import annotations
 
 import logging
-from time import perf_counter
 from typing import Any
 
 import numpy as np
@@ -10,11 +22,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 logger = logging.getLogger(__name__)
 
-
 class EmbeddingModel:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2") -> None:
+    def __init__(self, model_name: str = "paraphrase-multilingual-MiniLM-L12-v2") -> None:
         self.model_name = model_name
-        logger.info("Cargando modelo de embeddings: %s", model_name)
+        logger.info("Cargando modelo de embeddings multilingüe: %s", model_name)
         self.model = SentenceTransformer(model_name)
 
     def embed_texts(
@@ -58,6 +69,7 @@ def compute_embedding_quality(
 
     norms = np.linalg.norm(matrix, axis=1)
     zero_vectors = int(np.sum(norms == 0.0))
+    
     if np.all(norms == 0.0):
         similarity_mean = similarity_min = similarity_max = 0.0
     else:
@@ -86,7 +98,7 @@ def compute_embedding_quality(
 
     return {
         "count": matrix.shape[0],
-        "dimension": matrix.shape[1],
+        "dimension": matrix.shape[1],  # Se adapta automáticamente a las 384 dimensiones del nuevo modelo
         "zero_vectors": zero_vectors,
         "mean_norm": float(np.mean(norms)),
         "similarity_mean": similarity_mean,

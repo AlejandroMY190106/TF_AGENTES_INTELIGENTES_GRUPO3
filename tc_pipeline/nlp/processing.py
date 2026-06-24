@@ -46,22 +46,18 @@ def clean_text(text: str) -> str:
 
 
 def extract_text_for_chunking(record: dict[str, Any]) -> str:
-    candidates = []
-    for key in ("fundamentos", "FUNDAMENTOS"):
-        if key in record:
-            candidate = _serialize_text_content(record[key])
-            if candidate:
-                candidates.append(candidate)
-
-    if candidates:
-        return clean_text(candidates[0])
-
-    attachment = record.get("attachment") or record.get("attachment", {})
-    attachment_text = _serialize_text_content(attachment)
-    if attachment_text:
-        return clean_text(attachment_text)
-
-    return ""
+    """Extrae y concatena los motivos de demanda y fundamentos del registro."""
+    motivos = _serialize_text_content(record.get("motivos_demanda"))
+    fundamentos = _serialize_text_content(record.get("fundamentos"))
+    
+    parts = []
+    if motivos:
+        parts.append(motivos)
+    if fundamentos:
+        parts.append(fundamentos)
+        
+    combined = "\n".join(parts)
+    return clean_text(combined)
 
 
 def _split_words(text: str) -> list[str]:
@@ -91,85 +87,6 @@ def chunk_text(text: str, chunk_size: int = 200, overlap: int = 40) -> list[str]
     return chunks
 
 
-def extract_fecha_ingreso(text: str) -> str:
-    if not text:
-        return ""
-
-    patterns = [
-        r"con fecha\s+(.+?)(?:\s+en\b|\s+con\b|\s+para\b|\s+por\b|[.,;:\n]|$)",
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            return clean_text(match.group(1))
-
-    return ""
-
-
-def extract_sala_origen(text: str) -> str:
-    if not text:
-        return ""
-
-    patterns = [
-        r"expedida por la\s+([^.,;:\n]+?)(?:\s+en\b|\s+por\b|[.,;:\n]|$)",
-        r"expedida por el\s+([^.,;:\n]+?)(?:\s+en\b|\s+por\b|[.,;:\n]|$)",
-        r"emitida por la\s+([^.,;:\n]+?)(?:\s+en\b|\s+por\b|[.,;:\n]|$)",
-        r"emitida por el\s+([^.,;:\n]+?)(?:\s+en\b|\s+por\b|[.,;:\n]|$)",
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            return clean_text(match.group(1))
-
-    return ""
-
-
-def classify_participante(name: Any) -> str:
-    name_text = _serialize_text_content(name)
-    if not name_text:
-        return ""
-
-    normalized = name_text.strip()
-    if not normalized:
-        return ""
-
-    entidad_keywords = (
-        r"\b(Gobierno|Gobierno Regional|Municipalidad|Ministerio|Dirección|Hospital|Instituto|Empresa|Sociedad|Fundaci[oó]n|Banco|Universidad|Agencia|Consejo|Comisi[oó]n|Corporaci[oó]n|Compa[nñ][ií]a|Distrito|Regional|Estatal|Nacional|Provincial|Entidad|Servicio|Superintendencia|Corte|Juzgado|Fiscal[ií]a|Ministerio|Comando|Caja|EIRL|S\.A\.|S\.R\.L\.|S\.A\.C\.|A\.C\.|S\.C\.|COOP|E\.P\.S\.)\b"
-    )
-
-    if re.search(entidad_keywords, normalized, re.IGNORECASE):
-        return "Entidad Pública/Privada"
-
-    if re.search(r"\b(S\.A\.|S\.R\.L\.|S\.A\.C\.|EIRL|C\.A\.|COOP|A\.C\.)\b", normalized, re.IGNORECASE):
-        return "Entidad Pública/Privada"
-
-    words = [w for w in re.split(r"\s+", normalized) if w]
-    if len(words) <= 4 and all(
-        re.match(r"^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+$", w)
-        for w in words
-    ):
-        return "Persona Natural"
-
-    return "Entidad Pública/Privada"
-
-
-def extract_secondary_fields(record: dict[str, Any]) -> dict[str, str]:
-    text = extract_text_for_chunking(record)
-    fields = {
-        "FEC_INGRESO": extract_fecha_ingreso(text),
-        "SALA_ORIGEN": extract_sala_origen(text),
-    }
-
-    demandante = record.get("nombre_demandante") or record.get("DEMANDANTE")
-    demandado = record.get("nombre_demandado") or record.get("DEMANDADO")
-    fields["TIPO_DEMANDANTE"] = classify_participante(demandante)
-    fields["TIPO_DEMANDADO"] = classify_participante(demandado)
-
-    return fields
-
-
 def build_chunks_for_record(
     record: dict[str, Any],
     chunk_size: int = 200,
@@ -180,14 +97,9 @@ def build_chunks_for_record(
         return []
 
     chunks = chunk_text(text, chunk_size=chunk_size, overlap=overlap)
-    metadata = extract_secondary_fields(record)
 
-    base_id = (
-        record.get("numero_expediente")
-        or record.get("NEXPEDIENTE")
-        or str(record.get("id", ""))
-    )
-    base_id = str(base_id).strip()
+    base_id = record.get("numero_expediente")
+    base_id = str(base_id).strip() if base_id is not None else ""
 
     chunked_records = []
     for index, chunk in enumerate(chunks, start=1):
@@ -197,13 +109,10 @@ def build_chunks_for_record(
             "chunk_index": index,
             "text": chunk,
             "metadata": {
-                "sentencia_sala": record.get("sentencia_sala") or record.get("SALA"),
-                "sentencia_sentido": record.get("sentencia_sentido") or record.get("FALLO"),
-                "tipo_proceso": record.get("CDES_TIPOPROCESO"),
-                "materia": record.get("MATERIA"),
-                "sub_materia": record.get("SUB_MATERIA"),
-                "especifica": record.get("ESPECIFICA"),
-                **metadata,
+                "tipo_expediente": record.get("tipo_expediente"),
+                "sentido_resolucion": record.get("sentido_resolucion"),
+                "url_archivo_TC": record.get("url_archivo_TC"),
+                "url_archivo_original": record.get("url_archivo_original"),
             },
         }
         chunked_records.append(item)

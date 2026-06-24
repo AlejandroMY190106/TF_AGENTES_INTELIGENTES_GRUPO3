@@ -1,11 +1,13 @@
 """
 scripts/process_embeddings.py
 ─────────────────────────────
-Pipeline de chunking y embeddings para el corpus de expedientes.
+[SCRIPT DE DEPURACIÓN / OBSOLETO PARA EL FLUJO PRINCIPAL]
 
-Este script extrae texto de los campos `fundamentos` o `attachment`, realiza
-chunking con solapamiento, calcula embeddings usando SentenceTransformers,
- y genera métricas de calidad de embeddings.
+Responsabilidad Arquitectónica:
+Este script genera archivos intermedios JSONL con chunks y embeddings en crudo.
+Es útil exclusivamente como herramienta de depuración para inspeccionar vectores.
+NO es requerido ni utilizado por el flujo principal de indexación en ChromaDB (`chroma_pipeline.py`),
+el cual extrae, procesa e indexa directamente desde los archivos CSV.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ import argparse
 import json
 import logging
 import sys
+import glob
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +26,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tc_pipeline.nlp.embeddings import EmbeddingModel, compute_embedding_quality
 from tc_pipeline.nlp.processing import build_chunks_for_record
-from tc_pipeline.storage.parquet_store import ParquetStore
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,13 +36,13 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Genera chunks y embeddings para expedientes del TC."
+        description="Genera chunks y embeddings para expedientes del TC a partir de CSVs limpios."
     )
     parser.add_argument(
-        "--input",
+        "--input-dir",
         type=str,
-        default="data/raw/expedientes_tc.parquet",
-        help="Ruta al Parquet de expedientes.",
+        default="data/merged",
+        help="Directorio que contiene los CSVs limpios generados por clean_and_merge.py",
     )
     parser.add_argument(
         "--output-chunks",
@@ -57,8 +59,8 @@ def main() -> None:
     parser.add_argument(
         "--model",
         type=str,
-        default="all-MiniLM-L6-v2",
-        help="Nombre del modelo de SentenceTransformers.",
+        default="paraphrase-multilingual-MiniLM-L12-v2",
+        help="Nombre del modelo de SentenceTransformers (Multilingüe por defecto).",
     )
     parser.add_argument(
         "--chunk-size",
@@ -72,33 +74,43 @@ def main() -> None:
         default=40,
         help="Número de tokens superpuestos entre chunks.",
     )
-    parser.add_argument(
-        "--sample",
-        type=int,
-        default=0,
-        help="Número de registros a procesar como muestra (0 = todos).",
-    )
 
     args = parser.parse_args()
 
-    input_path = Path(args.input)
-    if not input_path.exists():
-        raise FileNotFoundError(f"Archivo de entrada no encontrado: {input_path}")
+    input_dir = Path(args.input_dir)
+    if not input_dir.exists():
+        raise FileNotFoundError(f"El directorio de entrada no existe: {input_dir}")
 
-    logger.info("Cargando dataset de expedientes desde %s", input_path)
-    df = pd.read_parquet(input_path, engine="pyarrow")
-
-    if args.sample > 0:
-        df = df.head(args.sample)
-
-    chunks: list[dict[str, Any]] = []
-    for _, record in df.to_dict(orient="records"):
-        chunks.extend(build_chunks_for_record(record, chunk_size=args.chunk_size, overlap=args.overlap))
-
-    if not chunks:
-        logger.warning("No se generaron chunks para el dataset especificado.")
+    # Buscar todos los CSVs en el directorio merged
+    csv_files = glob.glob(str(input_dir / "*.csv"))
+    if not csv_files:
+        logger.warning("No se encontraron archivos CSV en el directorio %s", input_dir)
         return
 
+    logger.info("Se encontraron %d archivos CSV para procesar.", len(csv_files))
+    
+    chunks: list[dict[str, Any]] = []
+
+    # Iterar y cargar cada uno de los CSVs generados
+    for file_path in csv_files:
+        logger.info("Procesando archivo: %s", Path(file_path).name)
+        try:
+            # Forzamos que lea todo como strings para evitar pérdidas de ceros en números de expediente
+            df = pd.read_csv(file_path, dtype=str)
+            # Rellenar nulos en fundamentos para evitar que falle el chunker
+            df["fundamentos"] = df["fundamentos"].fillna("")
+            
+            for _, record in df.to_dict(orient="records"):
+                if record["fundamentos"].strip():  # Solo procesar si tiene texto observable
+                    chunks.extend(build_chunks_for_record(record, chunk_size=args.chunk_size, overlap=args.overlap))
+        except Exception as e:
+            logger.error("Error al leer el archivo %s: %s", file_path, str(e))
+
+    if not chunks:
+        logger.warning("No se generaron chunks válidos del corpus de datos.")
+        return
+
+    # Guardar chunks en JSONL
     output_chunks_path = Path(args.output_chunks)
     output_chunks_path.parent.mkdir(parents=True, exist_ok=True)
     with output_chunks_path.open("w", encoding="utf-8") as file:
@@ -107,10 +119,14 @@ def main() -> None:
 
     logger.info("Generados %d chunks y guardados en %s", len(chunks), output_chunks_path)
 
+    # Inicializar modelo y generar embeddings vectoriales
     model = EmbeddingModel(model_name=args.model)
     texts = [chunk["text"] for chunk in chunks]
+    
+    logger.info("Calculando vectores de embedding... (Esto puede tomar unos minutos)")
     embeddings = model.embed_texts(texts)
 
+    # Guardar embeddings combinados en JSONL
     output_embeddings_path = Path(args.output_embeddings)
     output_embeddings_path.parent.mkdir(parents=True, exist_ok=True)
     with output_embeddings_path.open("w", encoding="utf-8") as file:
@@ -118,11 +134,12 @@ def main() -> None:
             record = {**chunk, "embedding": embedding}
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+    # Guardar Métricas de calidad
     metrics = compute_embedding_quality(embeddings)
     metrics_path = output_embeddings_path.with_suffix(".metrics.json")
     metrics_path.write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    logger.info("Embeddings generados: %d. Métricas guardadas en %s", len(embeddings), metrics_path)
+    logger.info("Embeddings generados exitosamente: %d. Métricas guardadas en %s", len(embeddings), metrics_path)
 
 
 if __name__ == "__main__":
