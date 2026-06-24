@@ -1,4 +1,3 @@
-chroma_pipeline.py
 """
 src/indexing/chroma_pipeline.py
 ─────────────────────────────
@@ -12,13 +11,18 @@ ChromaDB se encarga de calcular los embeddings utilizando el modelo multilingüe
 """
 
 import os
+import sys
 import glob
 import pandas as pd
 import chromadb
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
+import logging
+
+# Inyección dinámica de la raíz del proyecto para evitar errores de ModuleNotFoundError
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from tc_pipeline.nlp.embeddings import EmbeddingModel
 from tc_pipeline.nlp.processing import build_chunks_for_record
-import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -45,13 +49,16 @@ class ChromaIndexingPipeline:
         logger.info(f"🗄️ Inicializando ChromaDB en {self.db_path}")
         self.embedding_function = SentenceTransformerEmbeddingFunction(model_name=self.model_name)
         
-        # Borrado limpio (Drop Collection) en cada ejecución, según decisión de diseño.
+        # Borrado limpio seguro: Verifica las colecciones activas antes de borrar (Evita caídas en Rust)
         try:
-            self.client.delete_collection(name=self.collection_name)
-            logger.info(f"Colección '{self.collection_name}' eliminada exitosamente para reinicio.")
-        except ValueError:
-            # Captura el error si la colección no existía previamente
-            pass
+            colecciones_existentes = [c.name for c in self.client.list_collections()]
+            if self.collection_name in colecciones_existentes:
+                self.client.delete_collection(name=self.collection_name)
+                logger.info(f"Colección '{self.collection_name}' eliminada exitosamente para reinicio.")
+            else:
+                logger.info(f"Colección '{self.collection_name}' no existía. Se creará desde cero.")
+        except Exception as e:
+            logger.warning(f"No se pudo verificar o eliminar la colección: {str(e)}. Continuamos de todas formas.")
             
         self.collection = self.client.get_or_create_collection(
             name=self.collection_name,
@@ -60,9 +67,14 @@ class ChromaIndexingPipeline:
         logger.info(f"Colección '{self.collection_name}' lista para indexación.")
 
     def run_pipeline(self, input_dir: str = "data/merged", chunk_size: int = 400, overlap: int = 50, batch_size: int = 500):
+        # Asegurar que las rutas relativas funcionen desde la raíz del proyecto
+        if not os.path.exists(input_dir):
+            logger.warning(f"La ruta {input_dir} no existe localmente. Creándola para evitar crasheos.")
+            os.makedirs(input_dir, exist_ok=True)
+
         csv_files = glob.glob(os.path.join(input_dir, "*.csv"))
         if not csv_files:
-            logger.warning(f"No se encontraron archivos CSV en {input_dir}")
+            logger.warning(f"No se encontraron archivos CSV en {input_dir}. Coloca los archivos de tu grupo ahí.")
             return
             
         logger.info(f"Iniciando indexación vectorial desde {len(csv_files)} archivos CSV.")
@@ -74,6 +86,12 @@ class ChromaIndexingPipeline:
             try:
                 # Se forzan strings para evitar distorsiones en IDs (e.g. numero_expediente)
                 df = pd.read_csv(file_path, dtype=str)
+                
+                # Asegurar que existan las columnas mínimas que pide el pipeline del grupo
+                for col in ["fundamentos", "motivos_demanda"]:
+                    if col not in df.columns:
+                        df[col] = ""
+                
                 df["fundamentos"] = df["fundamentos"].fillna("")
                 df["motivos_demanda"] = df["motivos_demanda"].fillna("")
                 
@@ -121,5 +139,6 @@ class ChromaIndexingPipeline:
         logger.info(f"🎯 ¡Indexación completada! Total de chunks almacenados en ChromaDB: {total_chunks_indexed}")
 
 if __name__ == "__main__":
-    pipeline = ChromaIndexingPipeline()
-    pipeline.run_pipeline()
+    # Al ejecutar desde la raíz, apuntamos directo a las carpetas base del repositorio
+    pipeline = ChromaIndexingPipeline(db_path="data/chroma_storage")
+    pipeline.run_pipeline(input_dir="data/merged")

@@ -11,3 +11,4 @@ venv
 venv311
 data/sentencia-raw/*
 data/auto-resolucion-raw/
+data/chroma_storage/
