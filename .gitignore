@@ -9,5 +9,5 @@ settings.json
 EXCELES_POR_AÑO/
 venv
 venv311
-data/sentencia-raw/
+data/sentencia-raw/*
 data/auto-resolucion-raw/
