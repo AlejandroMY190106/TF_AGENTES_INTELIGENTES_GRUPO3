@@ -6,40 +6,23 @@ De acuerdo con el análisis del código actual y la reciente transición del sis
 
 **tc_pipeline/api/schemas.py**
 	Objetivo: Definir los contratos de datos (Pydantic) para la API de FastAPI y la comunicación entre agentes.
-	Estado actual: Contiene modelos Pydantic (`ExpedienteAPI`, `ScrapingRequest`, etc.) que hacen referencia a columnas del antiguo JSON devuelto por la API web o del SQLite.
-	Instrucciones de modificacion: 
-		1. Limpiar todos los esquemas obsoletos que ya no se usan (`ScrapingRequest`, `ScrapingProgress`, `DatasetListResponse`, y referencias a SQLite en `HealthResponse`).
-		2. Actualizar el esquema `ExpedienteBase` para coincidir exactamente con las columnas resultantes de tu nuevo CSV: `numero_expediente`, `url_archivo_TC`, `url_archivo_original`, `tipo_expediente`, `motivos_demanda`, `sentido_resolucion` y `fundamentos`.
-		3. Crear un nuevo esquema `MotivosDemandaRequest` que sirva como Input desde la ventana de FastAPI para recibir los "motivos del porqué el usuario coloca la demanda".
+	Estado actual: [COMPLETADO] Contiene los esquemas actualizados según el nuevo CSV (`ExpedienteBase`), el `MotivosDemandaRequest` y las bases para RAG (`QueryRequest/BriefResponse`) y Predicciones (`PrediccionRequest/PrediccionResponse`).
 
 **tc_pipeline/nlp/embeddings.py**
 	Objetivo: Envolver y manejar el modelo de HuggingFace `SentenceTransformers` para la generación de embeddings.
-	Estado actual: Usa como modelo de vectorización predeterminado `all-MiniLM-L6-v2`.
-	Instrucciones de modificacion: 
-		1. Modificar el parámetro por defecto de `EmbeddingModel` a `"paraphrase-multilingual-MiniLM-L12-v2"`.
-		2. Revisar que los métodos de calidad matemática de similitud de cosenos mantengan coherencia con la dimensión del nuevo modelo.
+	Estado actual: [COMPLETADO] El modelo predeterminado ahora es `"paraphrase-multilingual-MiniLM-L12-v2"` y se adaptaron las dimensiones a 384. Incluye un docstring clarificando que es un módulo puramente lógico (sin I/O).
 
 **scripts/process_embeddings.py**
 	Objetivo: Orquestar el flujo de lectura, partición de chunks y cálculos de embeddings del corpus de datos.
-	Estado actual: Depende de un archivo Parquet central `data/raw/expedientes_tc.parquet` y de librerías como `pyarrow`.
-	Instrucciones de modificacion: 
-		1. Descartar el uso de dependencias `pyarrow` y `ParquetStore`.
-		2. Modificar el `argparse` y la lógica interna para recorrer e iterar sobre los archivos CSV generados por `clean_and_merge.py` en el directorio `data/merged/`.
-		3. Sustituir `pd.read_parquet` por `pd.read_csv`, iterando cada uno de los CSVs de `expedientes_cleaned_*.csv` para la extracción y envío a chunking.
+	Estado actual: [COMPLETADO / MARCADO COMO DEBUG] Se refactorizó para iterar sobre los CSV y generar JSONL; sin embargo, para fines arquitectónicos ha sido marcado explícitamente en su cabecera como un script exclusivo de depuración (debugging) y no interviene en el flujo de indexación principal.
 
-**tc_pipeline/nlp/processing.py** **REFACTORIZAR Y UTILIZAR EN chroma_pipeline.py**
+**tc_pipeline/nlp/processing.py**
 	Objetivo: Llevar a cabo la limpieza de texto, partición de los textos en "chunks" con solapamiento y la extracción de metadata.
-	Estado actual: La función `extract_text_for_chunking` y `build_chunks_for_record` buscan propiedades asumiendo que procesan el diccionario JSON crudo original o parquets con llaves legacy como `CDES_TIPOPROCESO`, `FALLO` o esquemas en `attachment`.
-	Instrucciones de modificacion: 
-		1. Simplificar la función `extract_text_for_chunking` para que priorice de manera directa el valor de las columnas `motivos_demanda` y `fundamentos` que vienen de los nuevos CSV.
-		2. En la construcción de la `metadata` dentro de `build_chunks_for_record`, utilizar las llaves del nuevo esquema en su lugar (`tipo_expediente` y `sentido_resolucion`), descartando todo rastreo de variables anidadas.
-		3. Actualizar los campos al agente con los nuevos campos de los .csv en el fichero merge.
+	Estado actual: [COMPLETADO] Refactorizado por completo. Prioriza y concatena `motivos_demanda` y `fundamentos`. Se limpiaron las funciones de regex anidadas y la metadata de cada chunk ahora se construye usando únicamente las llaves de los nuevos CSV (`tipo_expediente`, `sentido_resolucion`, `url_archivo_TC`, etc.).
+
 **src/indexing/chroma_pipeline.py**
 	Objetivo: Configurar el pipeline específico para indexar la base vectorial (ChromaDB) de forma persistente.
-	Estado actual: Aunque declara el uso de `"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"`, posee su propia función genérica de chunking sin limpieza (`chunk_document`) y mapea metadata asumiendo llaves desactualizadas.
-	Instrucciones de modificacion: 
-		1. Eliminar la función propia `chunk_document` para importar y utilizar el método centralizado `build_chunks_for_record` alojado en `tc_pipeline/nlp/processing.py`.
-		2. Ajustar `index_dataframe` para leer los nuevos CSV de `data/merged/` y asegurarse que los metadatos inyectados (`_metadata`) almacenen apropiadamente los campos base: `numero_expediente`, `tipo_expediente` y `sentido_resolucion`.
+	Estado actual: [COMPLETADO] Rediseñado como orquestador ETL completo. Extrae leyendo iterativamente del directorio `data/merged/*.csv`, transforma invocando centralizadamente a `build_chunks_for_record` en `processing.py`, e inserta por lotes hacia ChromaDB, la cual computa los vectores usando el motor de embeddings envoltado `SentenceTransformerEmbeddingFunction`. Se agregó comportamiento de *drop collection* para asegurar reinicios limpios.
 
 **ver_indexacion.py**
 	Objetivo: Script visual en terminal para comprobar la existencia y veracidad de lo almacenado en la colección de ChromaDB.
@@ -47,6 +30,28 @@ De acuerdo con el análisis del código actual y la reciente transición del sis
 	Instrucciones de modificacion: 
 		1. Reemplazar toda mención a `Legal-BERT` en consola por `paraphrase-multilingual-MiniLM-L12-v2`.
 		2. Ajustar la impresión de `metadatas` para leer e imprimir `tipo_expediente` y `sentido_resolucion` en lugar de `materia`.
+
+**src/agent/rag_service.py**
+	Objetivo: Orquestar el agente de Recuperación y Generación (RAG) consultando ChromaDB y utilizando un LLM.
+	Estado actual: Es un cascarón que solo contiene la plantilla del prompt. No se conecta a Chroma ni al LLM.
+	Instrucciones de modificacion: 
+		1. Importar `chromadb.PersistentClient` y conectarlo a la colección `jurisprudencia_tc` usando la función de embeddings adecuada.
+		2. Crear una función `retrieve_context` que ejecute búsquedas semánticas sobre ChromaDB.
+		3. Integrar un cliente LLM (OpenAI/Anthropic/Ollama) y crear `generate_answer` que procese el query con el contexto recuperado y responda con el esquema `BriefResponse`.
+
+**docs/predictive_model_architecture.md** [NUEVO DOCUMENTO A CREAR]
+	Objetivo: Documentar la arquitectura, elección de modelo y flujo de entrenamiento para la IA que predecirá el `sentido_resolucion`.
+	Instrucciones de creacion: 
+		1. Establecer **XGBoost** sobre los embeddings (generados por Chroma o procesados aparte) como el modelo inicial por su balance entre bajo tiempo de entrenamiento, menor complejidad computacional y alta interpretabilidad.
+		2. Documentar las opciones avanzadas (Fine-Tuning de Transformers como RoBERTa o el modelo Multilingüe) detallando su mayor costo computacional y tiempo de implementación como alternativas futuras.
+		3. Definir la estrategia de limpieza de clases (`sentido_resolucion`), partición de datos y exportación a la carpeta `models/`.
+
+**src/ml/train_model.py** [NUEVO SCRIPT A CREAR]
+	Objetivo: Script para entrenar el modelo XGBoost predictivo utilizando los datos históricos.
+	Instrucciones de creacion: 
+		1. Leer los vectores (embeddings) y la variable objetivo desde ChromaDB o extrayéndolos de los CSV.
+		2. Limpiar las clases de "sentido_resolucion" para unificar criterios.
+		3. Entrenar el clasificador XGBoost, evaluar con métricas F1 y exportarlo como `.pkl` para su uso en la API.
 
 
 
