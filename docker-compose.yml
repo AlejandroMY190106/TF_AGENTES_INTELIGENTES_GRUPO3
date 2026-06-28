@@ -29,23 +29,20 @@ services:
       timeout: 10s
       retries: 3
 
-  # ── Worker de Embeddings / Pipeline RAG ──────────────────────────────
+# ── Worker de Embeddings / Pipeline RAG ──────────────────────────────
   worker:
     build: .
     container_name: tc-worker
     volumes:
       - ./data:/app/data
       - ./tc_pipeline:/app/tc_pipeline
+      - ./src:/app/src
       - ./scripts:/app/scripts
     environment:
       - PYTHONPATH=/app
       - LOG_LEVEL=INFO
-    # Comando actualizado para llamar al nuevo pipeline unificado de embeddings
-    command: >
-      python scripts/process_embeddings.py 
-      --input data/raw/expedientes_tc.parquet
-      --output-chunks data/raw/chunks.jsonl
-      --output-embeddings data/raw/embeddings.jsonl
+    # LLAMA AL ORQUESTADOR ETL PRINCIPAL DE TU EQUIPO
+    command: ["python", "src/indexing/chroma_pipeline.py"]
     profiles:
-      - worker  # Solo se activa de manera explícita con --profile worker
+      - worker
     restart: "no"
