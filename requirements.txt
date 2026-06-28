@@ -36,7 +36,7 @@ torch>=2.1.2                  # PyTorch (dependencia de transformers)
 scikit-learn>=1.3.2           # ML basics (cosine_similarity, etc.)
 nltk>=3.8.1                   # Procesamiento de lenguaje natural
 spacy>=3.7.2                  # NLP avanzado
-google-generativeai>=0.8.5
+groq>=0.11.0                  # Cliente oficial de Groq (reemplaza google-generativeai)
 
 # =========================================================================
 # Vector Databases & Search

@@ -1,3 +1,32 @@
+> [!IMPORTANT]
+> ## 🔑 Configuración de la API Key de Groq
+>
+> El servicio RAG (`src/agent/rag_service.py`) ahora usa **Groq** con el modelo `qwen/qwen3-32b`
+> en lugar de Google Generative AI. Debes configurar tu `GROQ_API_KEY` antes de ejecutar el proyecto.
+>
+> **Obtén tu API Key gratis en:** https://console.groq.com/keys
+>
+> **Opciones para configurarla:**
+>
+> **Opción 1 — Archivo `.env` en la raíz del proyecto (recomendado):**
+> ```
+> GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+> ```
+>
+> **Opción 2 — PowerShell (sesión actual):**
+> ```powershell
+> $env:GROQ_API_KEY = "gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+> ```
+>
+> **Opción 3 — CMD / bash:**
+> ```bash
+> set GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+> ```
+>
+> ⚠️ **No compartas tu API Key ni la subas al repositorio.** Asegúrate de que `.env` esté en `.gitignore`.
+
+---
+
 # Análisis y Próximos Pasos del Proyecto RAG - TC
 
 De acuerdo con el análisis del código actual y la reciente transición del sistema de ingesta de datos (de Parquet/SQLite/API JSON a archivos CSV generados a través de `clean_and_merge.py`), he identificado implementaciones desactualizadas y pasos clave para la refactorización hacia la nueva arquitectura FastAPI y ChromaDB con el modelo "paraphrase-multilingual-MiniLM-L12-v2".
