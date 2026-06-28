@@ -68,3 +68,32 @@ De acuerdo con el análisis del código actual y la reciente transición del sis
 	Instrucciones de modificacion: 
 		1. En el `Dockerfile`, eliminar los comandos `RUN mkdir -p` que instancian directorios como `data/csv`, `data/sentencia-raw`, y conservar únicamente la creación de directorios actuales como `data/merged/` y `data/chroma_storage/`.
 		2. En el `docker-compose.yml`, simplificar los volúmenes, garantizando acceso a `data/chroma_storage` para la API y, en el worker, actualizar el `command` por defecto para que llame directamente al nuevo script unificado de pipeline (sea refactorizando `process_embeddings.py` o `chroma_pipeline.py`) en lugar de `run_pipeline.py --phase all`.
+
+> [!IMPORTANT]
+> ## 🔑 Configuración de la API Key de Groq
+>
+> El servicio RAG (`src/agent/rag_service.py`) ahora usa **Groq** con el modelo `qwen/qwen3-32b`
+> en lugar de Google Generative AI. Debes configurar tu `GROQ_API_KEY` antes de ejecutar el proyecto.
+>
+> **Obtén tu API Key gratis en:** https://console.groq.com/keys
+>
+> **Opciones para configurarla:**
+>
+> **Opción 1 — Archivo `.env` en la raíz del proyecto (recomendado):**
+> ```
+> GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+> ```
+>
+> **Opción 2 — PowerShell (sesión actual):**
+> ```powershell
+> $env:GROQ_API_KEY = "gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+> ```
+>
+> **Opción 3 — CMD / bash:**
+> ```bash
+> set GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+> ```
+>
+> ⚠️ **No compartas tu API Key ni la subas al repositorio.** Asegúrate de que `.env` esté en `.gitignore`.
+
+---
