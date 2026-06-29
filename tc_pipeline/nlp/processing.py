@@ -109,6 +109,7 @@ def build_chunks_for_record(
             "chunk_index": index,
             "text": chunk,
             "metadata": {
+                "numero_expediente": base_id,
                 "tipo_expediente": record.get("tipo_expediente"),
                 "sentido_resolucion": record.get("sentido_resolucion"),
                 "url_archivo_TC": record.get("url_archivo_TC"),

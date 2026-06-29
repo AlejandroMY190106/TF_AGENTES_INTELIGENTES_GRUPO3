@@ -111,3 +111,95 @@ class PipelineConfig:
     def pdf_timeout(self) -> tuple[float, float]:
         """Tupla (connect, read) para descarga de PDFs."""
         return (self.connect_timeout, self.pdf_read_timeout)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Configuración del Pipeline de Machine Learning
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class MLConfig:
+    """Configuración inmutable del pipeline de entrenamiento XGBoost.
+
+    Centraliza todos los hiperparámetros del clasificador multiclase, la
+    conectividad a ChromaDB y los parámetros de reproducibilidad del
+    experimento. Actúa como única fuente de verdad para los módulos
+    ``data_loader``, ``model_trainer`` y ``model_evaluator``.
+
+    Attributes:
+        chroma_db_path: Ruta al directorio de almacenamiento persistente de ChromaDB.
+        chroma_collection_name: Nombre de la colección vectorial a consultar.
+        embedding_model_name: Modelo SentenceTransformer utilizado durante la indexación.
+        metadata_label_key: Clave del metadato que contiene la etiqueta objetivo.
+        metadata_groupby_key: Clave del metadato para agrupar chunks por documento.
+        test_size: Proporción del conjunto de prueba (0.0–1.0).
+        random_state: Semilla global para reproducibilidad.
+        models_output_dir: Directorio de salida para artefactos entrenados.
+        xgb_n_estimators: Número de árboles (rondas de boosting).
+        xgb_max_depth: Profundidad máxima de cada árbol base.
+        xgb_learning_rate: Tasa de aprendizaje (eta) del boosting.
+        xgb_subsample: Fracción de muestras usadas por árbol.
+        xgb_colsample_bytree: Fracción de features usadas por árbol.
+        xgb_objective: Función objetivo para clasificación multiclase.
+        xgb_eval_metric: Métrica de evaluación durante el entrenamiento.
+        xgb_use_label_encoder: Deshabilita el codificador interno (gestionamos con sklearn).
+        xgb_tree_method: Motor de árboles; 'hist' es el más eficiente en CPU.
+        xgb_n_jobs: Workers en paralelo (-1 = todos los núcleos disponibles).
+    """
+
+    # ── ChromaDB ─────────────────────────────────────────────────────────────
+    chroma_db_path: str = "data/chroma_storage"
+    chroma_collection_name: str = "jurisprudencia_tc"
+    embedding_model_name: str = "paraphrase-multilingual-MiniLM-L12-v2"
+
+    # ── Metadatos del dataset ────────────────────────────────────────────────
+    metadata_label_key: str = "sentido_resolucion"
+    metadata_groupby_key: str = "numero_expediente"
+
+    # ── Partición y reproducibilidad ─────────────────────────────────────────
+    test_size: float = 0.20
+    random_state: int = 42
+
+    # ── Artefactos del modelo ────────────────────────────────────────────────
+    models_output_dir: Path = Path("models")
+
+    # ── Hiperparámetros XGBoost ──────────────────────────────────────────────
+    xgb_n_estimators: int = 300
+    xgb_max_depth: int = 6
+    xgb_learning_rate: float = 0.05
+    xgb_subsample: float = 0.8
+    xgb_colsample_bytree: float = 0.8
+    xgb_objective: str = "multi:softprob"
+    xgb_eval_metric: str = "mlogloss"
+    xgb_use_label_encoder: bool = False
+    xgb_tree_method: str = "hist"
+    xgb_n_jobs: int = -1
+
+    # ── Helpers ──────────────────────────────────────────────────────────────
+
+    @property
+    def model_artifact_path(self) -> Path:
+        """Ruta completa al archivo JSON del modelo XGBoost serializado."""
+        return self.models_output_dir / "xgb_classifier.json"
+
+    @property
+    def encoder_artifact_path(self) -> Path:
+        """Ruta completa al archivo joblib del LabelEncoder serializado."""
+        return self.models_output_dir / "label_encoder.joblib"
+
+    @property
+    def xgb_params(self) -> dict:
+        """Diccionario de hiperparámetros listo para pasarse al XGBClassifier."""
+        return {
+            "n_estimators": self.xgb_n_estimators,
+            "max_depth": self.xgb_max_depth,
+            "learning_rate": self.xgb_learning_rate,
+            "subsample": self.xgb_subsample,
+            "colsample_bytree": self.xgb_colsample_bytree,
+            "objective": self.xgb_objective,
+            "eval_metric": self.xgb_eval_metric,
+            "use_label_encoder": self.xgb_use_label_encoder,
+            "tree_method": self.xgb_tree_method,
+            "n_jobs": self.xgb_n_jobs,
+            "random_state": self.random_state,
+        }
