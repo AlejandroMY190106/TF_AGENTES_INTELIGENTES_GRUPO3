@@ -126,10 +126,15 @@ def evaluate(
     conf_matrix: np.ndarray = confusion_matrix(y_test, y_pred)
 
     # ── 3. Classification Report ──────────────────────────────────────────────
+    # El test set puede no contener todas las clases (algunas son muy raras).
+    # Se filtra target_names a solo las clases presentes en y_test y y_pred.
+    present_labels = sorted(set(y_test.tolist()) | set(y_pred.tolist()))
+    present_names = [class_names[i] for i in present_labels]
     clf_report: str = classification_report(
         y_test,
         y_pred,
-        target_names=class_names,
+        labels=present_labels,
+        target_names=present_names,
         digits=4,
         zero_division=0,
     )
