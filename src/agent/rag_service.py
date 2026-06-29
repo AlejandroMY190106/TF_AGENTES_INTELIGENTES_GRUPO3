@@ -18,6 +18,9 @@ Obtén tu API Key gratis en: https://console.groq.com/keys
 """
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Carga automáticamente las variables del archivo .env
 import sys
 import json
 import logging
