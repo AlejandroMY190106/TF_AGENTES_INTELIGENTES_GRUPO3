@@ -188,6 +188,26 @@ class MLConfig:
         return self.models_output_dir / "label_encoder.joblib"
 
     @property
+    def logreg_model_artifact_path(self) -> Path:
+        """Ruta completa al archivo joblib del modelo Regresión Logística serializado."""
+        return self.models_output_dir / "logreg_classifier.joblib"
+
+    @property
+    def logreg_encoder_artifact_path(self) -> Path:
+        """Ruta completa al archivo joblib del LabelEncoder de Regresión Logística."""
+        return self.models_output_dir / "logreg_label_encoder.joblib"
+
+    @property
+    def svm_model_artifact_path(self) -> Path:
+        """Ruta completa al archivo joblib del modelo SVM serializado."""
+        return self.models_output_dir / "svm_classifier.joblib"
+
+    @property
+    def svm_encoder_artifact_path(self) -> Path:
+        """Ruta completa al archivo joblib del LabelEncoder de SVM."""
+        return self.models_output_dir / "svm_label_encoder.joblib"
+
+    @property
     def xgb_params(self) -> dict:
         """Diccionario de hiperparámetros listo para pasarse al XGBClassifier."""
         return {
