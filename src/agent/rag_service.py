@@ -35,7 +35,7 @@ from groq import Groq
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from src.indexing.chroma_pipeline import SentenceTransformerEmbeddingFunction
-from tc_pipeline.api.schemas import BriefResponse as GlobalBriefResponse
+from tc_pipeline.api.schemas import BriefResponse as GlobalBriefResponse  # Importación directa al módulo (evita cargar __init__.py → routes.py)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -72,9 +72,9 @@ class RAGService:
                 "    Consulta el docstring de este archivo para ver cómo configurarla."
             )
         self.groq_client = Groq(api_key=api_key)
-        self.llm_model_name = "qwen/qwen3-32b"
+        self.llm_model_name = "llama-3.3-70b-versatile"
 
-    def retrieve_context(self, query: str, n_results: int = 4) -> tuple[str, list[dict[str, Any]]]:
+    def retrieve_context(self, query: str, n_results: int = 2) -> tuple[str, list[dict[str, Any]]]:
         """
         Ejecuta búsquedas semánticas sobre ChromaDB.
         Retorna una tupla: (texto_contexto_concatenado, lista_de_fuentes_estructuradas)
@@ -143,7 +143,7 @@ class RAGService:
 
 Genera tu dictamen final en formato JSON, adaptándote exactamente al schema indicado."""
 
-        logger.info("Invocando a Groq (qwen/qwen3-32b) con formato de salida JSON estructurado...")
+        logger.info(f"Invocando a Groq ({self.llm_model_name}) con formato de salida JSON estructurado...")
 
         # Llamada al cliente Groq — sin streaming para obtener la respuesta completa en JSON
         completion = self.groq_client.chat.completions.create(
@@ -152,10 +152,9 @@ Genera tu dictamen final en formato JSON, adaptándote exactamente al schema ind
                 {"role": "system", "content": prompt_sistema},
                 {"role": "user", "content": prompt_usuario},
             ],
-            temperature=0.1,
-            max_completion_tokens=4096,
-            top_p=0.95,
-            reasoning_effort="default",
+            temperature=1,
+            max_completion_tokens=1024,
+            top_p=1,
             response_format={"type": "json_object"},
             stream=False,
         )

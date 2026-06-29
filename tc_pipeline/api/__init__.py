@@ -3,31 +3,6 @@ tc_pipeline.api
 ───────────────
 Paquete de la API FastAPI del Sistema Multiagente TC.
 
-Exporta la aplicación FastAPI y los esquemas Pydantic.
+NOTA: Los imports de `app` y `routes` se hacen explícitamente en main.py
+para evitar cargas en cascada al importar solo los schemas desde otros módulos.
 """
-
-from tc_pipeline.api.main import app
-from tc_pipeline.api.schemas import (
-    BriefResponse,
-    ExpedienteAPI,
-    ExpedienteBase,
-    HealthResponse,
-    PrediccionRequest,
-    PrediccionResponse,
-    QueryRequest,
-    AnalisisCompletoRequest,
-    AnalisisCompletoResponse,
-)
-
-__all__ = [
-    "app",
-    "ExpedienteBase",
-    "ExpedienteAPI",
-    "HealthResponse",
-    "QueryRequest",
-    "BriefResponse",
-    "PrediccionRequest",
-    "PrediccionResponse",
-    "AnalisisCompletoRequest",
-    "AnalisisCompletoResponse",
-]
