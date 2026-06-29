@@ -15,6 +15,8 @@ from tc_pipeline.api.schemas import (
     PrediccionRequest,
     PrediccionResponse,
     QueryRequest,
+    AnalisisCompletoRequest,
+    AnalisisCompletoResponse,
 )
 
 __all__ = [
@@ -26,4 +28,6 @@ __all__ = [
     "BriefResponse",
     "PrediccionRequest",
     "PrediccionResponse",
+    "AnalisisCompletoRequest",
+    "AnalisisCompletoResponse",
 ]

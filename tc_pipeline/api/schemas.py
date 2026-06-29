@@ -82,7 +82,7 @@ class PrediccionRequest(BaseModel):
 
     numero_expediente: str | None = None
     tipo_expediente: str | None = None
-    motivos_demanda: str | None = None
+    motivos_demanda: str = Field(..., description="Texto de los motivos de la demanda a vectorizar y clasificar")
     features: dict[str, Any] | None = Field(None, description="Features calculados para predicción")
 
 
@@ -93,3 +93,33 @@ class PrediccionResponse(BaseModel):
     probabilidades: dict[str, float] = Field(default_factory=dict, description="Probabilidad por clase")
     modelo: str = Field("", description="Modelo utilizado")
     confianza: float = Field(0.0, description="Confianza de la predicción")
+
+
+# ─── Schemas Combinados (RAG + Predictivo) ────────────────────────────────
+
+class AnalisisCompletoRequest(BaseModel):
+    """Request combinado para el análisis completo (RAG + Predictivo)."""
+
+    tipo_demanda: str = Field(
+        ...,
+        min_length=20,
+        description="Descripción de la acción constitucional que se quiere interponer (ej: Acción de Amparo por vulneración al debido proceso)"
+    )
+    motivos: str = Field(
+        ...,
+        min_length=20,
+        description="Argumentos y fundamentos fácticos/jurídicos del peticionario."
+    )
+
+
+class AnalisisCompletoResponse(BaseModel):
+    """Respuesta unificada del agente constitucional (RAG + Predictivo)."""
+
+    query: str = Field(..., description="Consulta original realizada")
+    brief: str = Field(..., description="Brief ejecutivo generado por el LLM RAG")
+    sources: list[dict[str, Any]] = Field(default_factory=list, description="Fragmentos fuente recuperados de la base vectorial")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Metadata adicional de la consulta RAG")
+    prediccion: str = Field(..., description="Fallo predicho por el modelo de ML")
+    probabilidades: dict[str, float] = Field(default_factory=dict, description="Probabilidad estimada por cada clase de fallo")
+    modelo: str = Field(..., description="Modelo predictivo utilizado")
+    confianza: float = Field(..., description="Nivel de confianza de la predicción (0.0 a 1.0)")
