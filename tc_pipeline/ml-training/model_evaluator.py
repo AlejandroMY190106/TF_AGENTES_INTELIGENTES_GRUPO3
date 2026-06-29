@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 import sys
 import os
-from typing import Optional
+from typing import Optional, Any
 
 import numpy as np
 import xgboost as xgb
@@ -61,12 +61,13 @@ _SUBSEP = "-" * 68
 # ─── Función principal ────────────────────────────────────────────────────────
 
 def evaluate(
-    model: xgb.XGBClassifier,
+    model: Any,
     encoder: LabelEncoder,
     X_test: np.ndarray,
     y_test: np.ndarray,
     *,
     output_file: Optional[str] = None,
+    model_name: str = "XGBoost",
 ) -> dict:
     """Evalúa el modelo entrenado sobre el conjunto de prueba y reporta métricas.
 
@@ -167,7 +168,7 @@ def evaluate(
     report_lines: list[str] = [
         "",
         _SEPARATOR,
-        "  📊  REPORTE DE EVALUACIÓN DEL CLASIFICADOR XGBoost",
+        f"  📊  REPORTE DE EVALUACIÓN DEL CLASIFICADOR {model_name.upper()}",
         _SEPARATOR,
         "",
         f"  Muestras de prueba  : {len(X_test)}",
@@ -246,6 +247,7 @@ def load_and_evaluate(
     y_test: np.ndarray,
     *,
     output_file: Optional[str] = None,
+    model_type: str = "xgboost",
 ) -> dict:
     """Carga los artefactos serializados desde disco y ejecuta la evaluación.
 
@@ -254,11 +256,12 @@ def load_and_evaluate(
     o CI/CD de validación de modelos.
 
     Args:
-        model_path: Ruta al archivo ``.json`` del modelo XGBoost serializado.
-        encoder_path: Ruta al archivo ``.joblib`` del ``LabelEncoder``.
+        model_path: Ruta al archivo del modelo serializado.
+        encoder_path: Ruta al archivo del ``LabelEncoder``.
         X_test: Matriz de características de prueba.
         y_test: Etiquetas numéricas de prueba.
         output_file: Ruta opcional para exportar el reporte en texto plano.
+        model_type: Tipo de modelo ("xgboost" o "sklearn").
 
     Returns:
         Mismo diccionario de métricas que :func:`evaluate`.
@@ -270,23 +273,24 @@ def load_and_evaluate(
 
     if not os.path.isfile(model_path):
         raise FileNotFoundError(
-            f"Modelo XGBoost no encontrado en: '{model_path}'. "
-            "Ejecuta primero model_trainer.py."
+            f"Modelo no encontrado en: '{model_path}'."
         )
     if not os.path.isfile(encoder_path):
         raise FileNotFoundError(
-            f"LabelEncoder no encontrado en: '{encoder_path}'. "
-            "Ejecuta primero model_trainer.py."
+            f"LabelEncoder no encontrado en: '{encoder_path}'."
         )
 
-    logger.info("Cargando modelo desde: '%s'", model_path)
-    model = xgb.XGBClassifier()
-    model.load_model(model_path)
+    logger.info("Cargando modelo (%s) desde: '%s'", model_type, model_path)
+    if model_type.lower() == "xgboost":
+        model = xgb.XGBClassifier()
+        model.load_model(model_path)
+    else:
+        model = joblib.load(model_path)
 
     logger.info("Cargando LabelEncoder desde: '%s'", encoder_path)
     encoder: LabelEncoder = joblib.load(encoder_path)
 
-    return evaluate(model, encoder, X_test, y_test, output_file=output_file)
+    return evaluate(model, encoder, X_test, y_test, output_file=output_file, model_name=model_type)
 
 
 # ─── Ejecución directa (smoke test + pipeline completo) ──────────────────────
@@ -296,7 +300,7 @@ if __name__ == "__main__":
         sys.path.insert(0, _ML_DIR)
 
     from data_loader import load_dataset      # type: ignore[import-not-found]
-    from model_trainer import train           # type: ignore[import-not-found]
+    from model_trainer_XGBoost import train   # type: ignore[import-not-found]
 
     # ─── Importar config desde la raíz
     from tc_pipeline.config import MLConfig  # type: ignore[import-not-found]
