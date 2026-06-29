@@ -53,9 +53,9 @@ Tras revisar el pipeline completo — desde `chroma_pipeline.py` hasta `model_tr
 
 ## Archivos Pendientes
 
-**src/ui/index.html** [NUEVO]
+**src/ui/index.html** [COMPLETADO]
 	Objetivo: Interfaz de usuario web completa para probar el agente constitucional de manera interactiva, permitiendo ingresar la demanda y sus motivos y visualizar tanto la predicción del modelo XGBoost como el análisis argumentativo del LLM con casos similares.
-	Estado actual: No existe ninguna interfaz. El único punto de acceso es el Swagger generado por FastAPI en `/docs`.
+	Estado actual: [COMPLETADO] No existe ninguna interfaz. El único punto de acceso es el Swagger generado por FastAPI en `/docs`.
 	Instrucciones de creacion:
 		1. Crear una Single Page Application en HTML/CSS/JavaScript puro (sin frameworks) con dos campos de texto: `tipo_demanda` (select o input con sugerencias de los tipos de proceso constitucional: Amparo, Hábeas Corpus, Hábeas Data, Inconstitucionalidad, Conflicto de Competencia) y `motivos` (textarea con `min-length` 50 chars), un botón "Analizar caso" que haga un `fetch POST` al endpoint `/api/v1/analizar`.
 		2. Diseñar la sección de resultados con tres bloques visuales diferenciados: (a) **Predicción del Modelo** — badge con el fallo predicho coloreado por clase (verde: Fundada, rojo: Infundada, naranja: Improcedente) + barras de probabilidad por clase; (b) **Análisis del Agente RAG** — card con el brief en Markdown renderizado; (c) **Casos Similares** — lista de expedientes fuente con número, tipo y sentido previo, enlazables a la URL del TC.
