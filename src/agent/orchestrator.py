@@ -31,39 +31,39 @@ async def analizar_caso(
     """
     logger.info("Iniciando análisis coordinado del caso...")
 
-    # Tareas asíncronas
-    task_rag = None
-    task_predictor = None
-
-    # Inicializar llamadas concurrentes en hilos independientes (para evitar bloquear el loop principal)
-    if rag is not None:
-        task_rag = asyncio.to_thread(rag.generate_answer, texto_demanda)
-    else:
-        logger.warning("RAGService no está inicializado. Se omitirá su ejecución.")
-
+    # 1. Ejecutar PredictorService primero (inferencia local rápida)
+    pred_result = None
     if predictor is not None:
-        task_predictor = asyncio.to_thread(predictor.predict, texto_demanda)
+        try:
+            pred_result = await asyncio.to_thread(predictor.predict, texto_demanda)
+        except Exception as e:
+            logger.error(f"Error durante la ejecución del PredictorService: {e}")
+            pred_result = e
     else:
         logger.warning("PredictorService no está inicializado. Se omitirá su ejecución.")
 
-    # Ejecutar en paralelo
-    rag_result = None
-    pred_result = None
+    # Extraer variables para anclar el RAG
+    prediccion_clase = None
+    confianza_valor = None
+    if pred_result is not None and not isinstance(pred_result, Exception):
+        prediccion_clase = pred_result.get("prediccion")
+        confianza_valor = pred_result.get("confianza")
 
-    # Construimos la lista de corutinas y hacemos gather tolerando excepciones individuales
-    if task_rag and task_predictor:
-        results = await asyncio.gather(task_rag, task_predictor, return_exceptions=True)
-        rag_result, pred_result = results[0], results[1]
-    elif task_rag:
+    # 2. Ejecutar RAGService secuencialmente pasando el resultado del Predictor si existe
+    rag_result = None
+    if rag is not None:
         try:
-            rag_result = await task_rag
+            rag_result = await asyncio.to_thread(
+                rag.generate_answer, 
+                texto_demanda, 
+                prediccion=prediccion_clase, 
+                confianza_prediccion=confianza_valor
+            )
         except Exception as e:
+            logger.error(f"Error durante la ejecución de RAGService: {e}")
             rag_result = e
-    elif task_predictor:
-        try:
-            pred_result = await task_predictor
-        except Exception as e:
-            pred_result = e
+    else:
+        logger.warning("RAGService no está inicializado. Se omitirá su ejecución.")
 
     # --- Procesamiento de resultados del RAG ---
     brief_text = ""

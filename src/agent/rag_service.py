@@ -45,7 +45,7 @@ class StructuredAnalysis(BaseModel):
     """Estructura de respuesta que le exigimos al LLM para el análisis del caso."""
     resumen_caso: str = Field(description="Breve resumen del expediente y la controversia constitucional analizada.")
     fundamento_clave: str = Field(description="El fragmento o razonamiento jurídico más determinante extraído del contexto.")
-    sentido_sugerido: str = Field(description="Sentido de la resolución (e.g., FUNDADA, INFUNDADA, IMPROCEDENTE) basado en los precedentes.")
+    sentido_sugerido: str = Field(description="Sentido de la resolución que DEBE coincidir con la predicción del modelo cuantitativo si fue provista (e.g., FUNDADA, INFUNDADA, IMPROCEDENTE). En ausencia de predicción externa, inferir desde los precedentes.")
     confianza: float = Field(description="Nivel de confianza de la respuesta (de 0.0 a 1.0).")
 
 
@@ -115,7 +115,12 @@ class RAGService:
         context_text = "\n---\n".join(context_blocks)
         return context_text, sources_list
 
-    def generate_answer(self, query: str) -> GlobalBriefResponse:
+    def generate_answer(
+        self,
+        query: str,
+        prediccion: str | None = None,
+        confianza_prediccion: float | None = None,
+    ) -> GlobalBriefResponse:
         """
         Une la consulta con los precedentes, genera la respuesta estructurada con Groq (Qwen3-32B)
         y la adapta al contrato global de BriefResponse de schemas.py.
@@ -130,8 +135,23 @@ class RAGService:
             "Tu tarea es analizar la consulta del usuario basándote exclusivamente en el contexto de jurisprudencia proveído abajo. "
             "Debes ser riguroso, objetivo y responder ÚNICAMENTE con un objeto JSON válido que cumpla exactamente con el "
             f"siguiente schema:\n\n{json_schema}\n\n"
-            "No incluyas texto adicional fuera del JSON. No uses bloques de código markdown."
+            "No incluyas texto adicional fuera del JSON. No uses bloques de código markdown. "
+            "Cuando se te proporcione la predicción de un modelo cuantitativo externo, tu campo 'sentido_sugerido' DEBE coincidir con dicha predicción. "
+            "Tu rol es argumentar y justificar esa predicción con base jurídica, no cuestionarla."
         )
+
+        anchor_block = ""
+        if prediccion is not None:
+            confianza_str = f"{confianza_prediccion * 100:.1f}%" if confianza_prediccion is not None else "N/D"
+            anchor_block = (
+                f"\n[PREDICCIÓN DEL MODELO CUANTITATIVO]\n"
+                f"El clasificador entrenado ha determinado que la resolución más probable es: "
+                f"**{prediccion.upper()}** (confianza: {confianza_str}).\n"
+                f"Tu análisis argumentativo DEBE ser consistente con esta predicción. "
+                f"Si los precedentes recuperados apuntan en una dirección diferente, "
+                f"debes explicar por qué el caso bajo consulta se aleja de esos precedentes "
+                f"y justificar el resultado '{prediccion.upper()}' con base en sus motivos específicos.\n"
+            )
 
         prompt_usuario = f"""Analiza la siguiente consulta jurídica utilizando los precedentes vectoriales recuperados de la base de datos.
 
@@ -140,7 +160,7 @@ class RAGService:
 
 [CONTEXTO RELEVANTE RECUPERADO (CHROMA DB)]
 {contexto_text}
-
+{anchor_block}
 Genera tu dictamen final en formato JSON, adaptándote exactamente al schema indicado."""
 
         logger.info(f"Invocando a Groq ({self.llm_model_name}) con formato de salida JSON estructurado...")
@@ -152,7 +172,7 @@ Genera tu dictamen final en formato JSON, adaptándote exactamente al schema ind
                 {"role": "system", "content": prompt_sistema},
                 {"role": "user", "content": prompt_usuario},
             ],
-            temperature=1,
+            temperature=0.3,
             max_completion_tokens=1024,
             top_p=1,
             response_format={"type": "json_object"},
