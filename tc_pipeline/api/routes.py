@@ -48,8 +48,16 @@ from tc_pipeline.api.schemas import (
     ScrapingProgress,
     ScrapingRequest,
     ScrapingStatus,
+    AnalisisCompletoRequest,
+    AnalisisCompletoResponse,
 )
 from tc_pipeline.config import PipelineConfig
+
+# Imports de Servicios e Inferencia
+from src.agent.rag_service import RAGService
+from src.agent.predictor_service import PredictorService
+from src.agent.orchestrator import analizar_caso
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +65,28 @@ router = APIRouter()
 
 # ── Almacenamiento ──────────────────────────────────────────────────────
 _config = PipelineConfig()
+
+# ── Instanciación de Servicios (Singletons tolerantes a fallos) ────────
+_rag_service: RAGService | None = None
+_predictor_service: PredictorService | None = None
+
+try:
+    _rag_service = RAGService()
+except Exception as _e:
+    logger.warning(
+        "⚠️ RAGService no pudo inicializarse durante el arranque del router: %s. "
+        "El endpoint /query no estará funcional.",
+        _e,
+    )
+
+try:
+    _predictor_service = PredictorService()
+except Exception as _e:
+    logger.warning(
+        "⚠️ PredictorService no pudo inicializarse durante el arranque del router: %s. "
+        "El endpoint /prediccion no estará funcional.",
+        _e,
+    )
 
 # ── Estado de tareas en memoria ─────────────────────────────────────────
 _tasks: dict[str, ScrapingStatus] = {}
