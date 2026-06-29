@@ -1,396 +1,135 @@
-Project Status Report
-=====================
+# Estado del Proyecto — Sistema Multiagente TC
 
-Resumen de avance
------------------
-- Fase 1 (extracción y mapeo) está implementada y operativa en gran parte.
-- El repositorio tiene scripts de scraping, descarga, extracción, limpieza y mapeo.
-- FastAPI expone `/api/v1/health`, `/api/v1/datasets` y el scraping masivo en `/api/v1/scraping/...`.
-- No hay endpoints operativos para `/expedientes` o `/expedientes/{numero}`.
-- Los endpoints de Fase 2/3/4 (`/ingest`, `/query`, `/prediccion`) siguen siendo stubs que devuelven HTTP 501.
-
-Estado por fase del plan
-------------------------
-1. Fase 1: completada / muy avanzada.
-   - `tc_pipeline.scraping.api_client.py`, `tc_pipeline.scraping.downloader.py`, `scripts/run_pipeline.py` y `tc_pipeline.cleaning.mapping.py` ejecutan gran parte del pipeline de extracción.
-   - `tc_pipeline/api/main.py` y `tc_pipeline/api/routes.py` crean el esqueleto de backend.
-2. Fase 2: parcialmente implementada.
-   - Existe lógica de chunking y NLP secuencia en `tc_pipeline/nlp/processing.py`.
-   - Hay soporte de embeddings en `tc_pipeline/nlp/embeddings.py`.
-   - Hay scripts de indexación en `src/indexing/chroma_pipeline.py` y verificación en `ver_indexacion.py`.
-   - Sin embargo, la ingesta curada vía API aún no está operativa.
-3. Fase 3: pendiente.
-   - No hay implementación de consulta RAG con ChromaDB y LLM.
-   - `/query` es stub.
-4. Fase 4: pendiente.
-   - No hay código de entrenamiento ML ni modelos predictivos finales.
-   - `/prediccion` es stub.
-
-Cobertura de datos en `data/`
-----------------------------
-- Hay archivos de metadata CSV para todos los años 1992-2026.
-- Para los años 1992-1995, los CSV de metadata existen pero tienen 0 filas de datos.
-- Hay metadatos reales desde 1996 en adelante, con conteos de registros por año:
-  - 1996: 80
-  - 1997: 521
-  - 1998: 1,107
-  - 1999: 1,286
-  - 2000: 1,622
-  - 2001: 585
-  - 2002: 1,115
-  - 2003: 3,356
-  - 2004: 2,842
-  - 2005: 2,516
-  - 2006: 1,597
-  - 2007: 4,006
-  - 2008: 3,771
-  - 2009: 3,533
-  - 2010: 2,295
-  - 2011: 1,735
-  - 2012: 1,349
-  - 2013: 3,942
-  - 2014: 4,718
-  - 2015: 1,571
-  - 2016: 1,267
-  - 2017: 1,584
-  - 2018: 2,461
-  - 2019: 2,342
-  - 2020: 1,717
-  - 2021: 3,657
-  - 2022: 3,076
-  - 2023: 4,455
-  - 2024: 4,388
-  - 2025: 4,947
-  - 2026: 489
-
-Raw PDF coverage
-- `data/sentencia-raw/` contiene PDFs para años 1996-2003.
-- `data/auto-resolucion-raw/` contiene directorios para 1996-2003, pero no hay PDFs dentro.
-
-Extracción de texto / CSV de salida
-- `data/sentencia-Extract/` tiene al menos un CSV por año para 2004-2010 en el periodo actual de procesamiento.
-- `data/auto-resolucion-Extract/` tiene al menos un CSV por año para 2004-2010 en el periodo actual de procesamiento.
-
-Cobertura efectiva por año
---------------------------
-- Periodo con metadata disponible: 1992-2026.  
-- Periodo con contenido ABIERTO para este proceso: 2004-2010.  
-- Periodo con PDF raw disponible para sentencias: 1996-2003.  
-- Periodo con PDFs de autos/resoluciones aún no descargados o no disponibles en el almacenamiento actual.
-
-Hallazgos clave
-----------------
-- La cobertura de datos no es uniforme: los primeros años (1992-1995) tienen CSVs vacíos o metadata parcial.
-- La extracción de metadata cubre 1996-2026, pero los PDFs raw descargados están presentes principalmente en `data/sentencia-raw/` para 1996-2003; `data/auto-resolucion-raw/` incluye directorios 1996-2003 con menos certeza de archivos completos.
-- Hay una instancia de ChromaDB en `data/chroma_storage/`, pero no existe aún un endpoint RAG operativo ni un flujo `/query` real.
-- El backend no implementa `/expedientes`; el contrato está definido en schemas pero no expuesto.
-- La documentación de embeddings y el código divergen:
-  - `docs/embedding_model_selection.md` recomienda `paraphrase-multilingual-MiniLM-L12-v2`.
-  - `src/indexing/chroma_pipeline.py` implementa un embedding directo con `nlpaueb/legal-bert-base-uncased`.
-  - `tc_pipeline/nlp/embeddings.py` usa por defecto `all-MiniLM-L6-v2`.
-- El entorno actual del desarrollador es Python 3.12.10 con `numpy 2.5.0`, `pandas 2.3.3`, `sentence-transformers 5.6.0`, `transformers 5.12.1`, `torch 2.12.1` y `tensorflow 2.21.0`; esto no coincide con la recomendación de Python 3.11.15 ni con el límite de `numpy<2.0.0` en `requirements.txt`.
-
-Recomendación rápida
---------------------
-- Consolidar primero la Fase 2: validar el dataset curado, unificar el modelo de embeddings y exponer realmente `/ingest` y `/expedientes`.
-- Corregir la brecha de entorno: alinear Python y dependencias con `requirements.txt` o actualizar los límites de paquetes críticos como `numpy` y `protobuf`.
-- Luego avanzar a Fase 3 integrando ChromaDB + RAG con un LLM y un endpoint `/query` operativo.
-- Finalmente, materializar la Fase 4 con el dataset de features y el endpoint `/prediccion`.
+> **Última actualización:** Junio 2026  
+> **Stack:** Python 3.10+ · FastAPI · ChromaDB · XGBoost · Groq (Qwen3-32B) · SentenceTransformers
 
 ---
 
-# Estado Fase 2: Limpieza y Unión de Data — Verificación Completada
+## Resumen Ejecutivo
 
-**Fecha de revisión:** 2026-06-22  
-**Versión:** 1.0
-
----
-
-## 📋 Resumen Ejecutivo
-
-Se ha completado la revisión integral del **script de limpieza y merge** (`scripts/clean_and_merge.py`) y la **validación de dependencias** en `requirements.txt`. El script está **listo para ejecutar** y cubre los requisitos funcionales especificados:
-
-✅ Limpieza robusta de PDFs con manejo de caracteres ilegibles, saltos de línea y texto invertido  
-✅ Unión de datos JSON y PDFs en CSV por año  
-✅ Procesamiento exclusivo de años 2004-2010  
-✅ Dependencies audited, with `requirements.txt` updated to support Python 3.11/3.12 and the `protobuf<7.0` constraint
+El sistema es un **agente constitucional inteligente** que predice el sentido de la resolución del Tribunal Constitucional del Perú (`sentido_resolucion`) y argumenta la predicción recuperando jurisprudencia semánticamente similar. El pipeline se divide en cinco capas de responsabilidad bien delimitadas.
 
 ---
 
-## 🔍 Análisis del Script `clean_and_merge.py`
+## Capa 1 — Obtención de Datos (Scraping)
 
-### Alcance
+Responsable de extraer la metadata estructurada de las sentencias del TC desde su API oficial y descargar los PDFs correspondientes.
 
-| Aspecto | Valor |
-|--------|-------|
-| **Entrada primaria** | `data/sentencia-Extract/` y `data/auto-resolucion-Extract/` (CSVs con JSONs extraídos) |
-| **Entrada secundaria** | Metadatos de número de expediente y año |
-| **Salida principal** | `data/merged/expedientes_cleaned_{year}.csv` por año, generados en `data/merged/` |
-| **Salida secundaria** | `docs/cleaning-merge-report.md` (estadísticas de limpieza) |
-| **Años procesados** | 2004-2010 |
-| **Período cubierto** | 2004-2010 |
+| Archivo | Responsabilidad |
+|---|---|
+| `tc_pipeline/scraping/api_client.py` | Cliente HTTP del endpoint cronológico del TC (`/busqueda/cronologico`). Pagina resultados año por año, implementa reintentos con backoff exponencial y exporta la metadata a CSV por año. |
+| `tc_pipeline/scraping/downloader.py` | Descargador concurrente de PDFs usando `ThreadPoolExecutor`. Gestiona el mapa de IDs (`id_map`) para vincular cada PDF con su número de expediente. |
+| `tc_pipeline/scraping/rewrite_csvs.py` | Utilitario de reescritura para normalizar los CSV de salida del cliente API cuando hay cambios en el schema del endpoint. |
+| `tc_pipeline/config.py → PipelineConfig` | Fuente única de verdad para URLs de la API, timeouts, headers, rutas de descarga, número de workers y códigos HTTP reintentables. |
 
-### Funcionalidades de Limpieza Implementadas
-
-#### 1. **Detección y Corrección de Texto Invertido**
-```python
-def detect_and_fix_reversed(text: str) -> Tuple[str, bool]:
-    # Busca tokens comunes (ANTECEDENTES, FUNDAMENTOS, RESUELVE, etc.)
-    # Si están en el texto normal → OK
-    # Si están en el texto invertido → se invierte y se marca como fixed
-```
-- Tokens: `ANTECEDENTES`, `FUNDAMENTOS`, `HA RESUELTO`, `FALLA`, `RESUELVE`, `VISTO`, `EXPEDIENTE`
-- Salida: texto corregido + flag `reversed_fixed`
-
-#### 2. **Detección de Ruido/Caracteres Ilegibles**
-```python
-def is_noisy(text: str) -> bool:
-    # Detecta:
-    # - Caracteres de reemplazo Unicode (✗, \ufffd)
-    # - Proporción excesiva de no-letras (>45%)
-```
-- Calcula: `(caracteres_totales - caracteres_letra) / caracteres_totales`
-- Marca como `noisy=True` si supera 45% de ruido
-
-#### 3. **Normalización de Espacios y Saltos de Línea**
-- Reemplaza múltiples espacios por uno
-- Reduce saltos de línea consecutivos (máx. 2)
-- Usa funciones de `pdf_extractor`:
-  - `normalize_text()`: Unicode NFC, tabs → espacios, espacios finales
-  - `clean_extracted_section()`: elimina números de página, encabezados TC
-
-#### 4. **Extracción de Texto Principal**
-- Prioridad: `fundamentos` > `attachment.content` > cualquier campo con 'texto'
-- Aplica limpieza a cada candidato
-- Devuelve el primero válido
-
-### Flujo de Procesamiento
-
-```
-CSV Input (sentencia-Extract/ o auto-resolucion-Extract/)
-    ↓
-Lee CSVs por año (solo 2004-2010)
-    ↓
-Para cada registro:
-    - Extrae texto de fundamentos/attachment
-    - Normaliza Unicode y espacios
-    - Detecta y corrige texto invertido
-    - Detecta ruido
-    - Aplica limpieza final
-    ↓
-Genera salida CSV con columnas:
-  - numero_expediente
-  - year
-  - doc_type (sentencia | auto-resolucion)
-  - source_file
-  - original_snippet (primeros 300 caracteres)
-  - cleaned_text (texto final limpio)
-  - original_len, cleaned_len
-  - noisy, reversed_fixed (flags)
-    ↓
-CSV por año → data/merged/expedientes_cleaned_{year}.csv (uno por cada año procesado)
-Report MD → docs/cleaning-merge-report.md
-```
-
-### Parámetros Configurables
-
-| Parámetro | Valor por defecto | Ubicación | Propósito |
-|-----------|------------------|-----------|----------|
-| `PROCESS_YEARS` | 2004-2010 | Línea 16 | Años a procesar |
-| `MERGED_CSV` | Removed; now generated per-year in `data/merged/expedientes_cleaned_{year}.csv` | Línea 21 | Ruta de salida CSV |
-| `REPORT_MD` | `docs/cleaning-merge-report.md` | Línea 22 | Ruta de reporte |
-| `COMMON_TOKENS` | Lista de 7 tokens | Línea 25-32 | Tokens para detectar inversión |
-| Umbral ruido | 0.45 (45%) | `is_noisy()` línea 64 | Proporción max de no-letras |
+**Artefactos producidos:** `data/csv/*.csv` (metadata por año), `data/sentencia-raw/`, `data/auto-resolucion-raw/` (PDFs descargados).
 
 ---
 
-## 🔧 Validación de Dependencias
+## Capa 2 — Limpieza, Extracción y Merge
 
-### Estado Actual del Entorno
+Responsable de convertir los PDFs y CSVs crudos en un dataset limpio y unificado con las variables finales necesarias para el modelo.
 
-| Parámetro | Valor |
-|-----------|-------|
-| **Python detectado en terminal** | 3.12.10 (sistema) |
-| **Python recomendado en requirements.txt** | 3.11.15 |
-| **Packages instalados** | 183+ (incluye todas las necesarias) |
+| Archivo | Responsabilidad |
+|---|---|
+| `tc_pipeline/extraction/pdf_extractor.py` | Extrae el texto estructurado de los PDFs de sentencias y autos de resolución usando `pdfplumber`. Identifica y separa las secciones de `fundamentos` y `motivos_demanda` mediante heurísticas de encabezados. Exporta los resultados a `data/sentencia-Extract/` y `data/auto-resolucion-Extract/`. |
+| `tc_pipeline/cleaning/mapping.py` | Módulo de normalización y mapeo de variables. Estandariza `sentido_resolucion` (consolida variantes textuales como "DECLARAR FUNDADA" → "Fundada"), normaliza `tipo_expediente`, y mapea columnas entre el schema del API JSON y el schema final del CSV. |
+| `tc_pipeline/cleaning/normalize.py` | Funciones de limpieza de texto a nivel de celda: strip, lowercase selectivo, eliminación de caracteres especiales. |
+| `tc_pipeline/cleaning/partition.py` | Lógica de partición y agrupación de registros por año y tipo de documento previo al merge final. |
 
-### Dependencias Críticas para `clean_and_merge.py`
+**Variables finales del dataset consolidado:** `numero_expediente`, `tipo_expediente`, `sentido_resolucion`, `motivos_demanda`, `fundamentos`, `url_archivo_TC`, `url_archivo_original`.
 
-| Paquete | Usada en | Min. Version | Estado |
-|---------|----------|--------------|--------|
-| `pandas` | Lectura/escritura CSV | ≥2.1.4 | ✅ Instalada (3.0.3) |
-| `pdfplumber` | `pdf_extractor` imports | ≥0.10.3 | ✅ Instalada (0.11.10) |
-| `regex` | Limpieza de texto | — | ✅ Instalada (2026.5.9) |
-| `unicodedata` | Normalización Unicode | stdlib | ✅ Integrado |
-| `pathlib` | Gestión de rutas | stdlib | ✅ Integrado |
-
-### Actualizaciones Realizadas a `requirements.txt`
-
-Se ajustaron versiones máximas para **compatibilidad explícita con Python 3.11.15**:
-
-```diff
-- pandas>=2.1.4
-+ pandas>=2.1.4,<3.0.0          # Compatibilidad con Python 3.11
-
-- numpy>=1.24.3
-+ numpy>=1.24.3,<2.0.0          # Compatibilidad con Python 3.11
-```
-
-**Justificación:**
-- Pandas 3.0.0+ puede requerir cambios en API
-- NumPy 2.0.0+ tiene cambios de compatibilidad significativos
-- Los límites máximos previenen upgrading automático a versiones incompatibles
+**Artefactos producidos:** `data/merged/expedientes_cleaned_YYYY.csv`
 
 ---
 
-## 📊 Salidas Esperadas
+## Capa 3 — Chunking, Embeddings e Indexación en ChromaDB
 
-### 1. CSV Consolidado
-**Archivo:** `data/merged/expedientes_cleaned_{year}.csv` (uno por año procesado)
+Responsable de transformar el texto limpio en representaciones vectoriales densas y persistirlas en la base de datos vectorial para búsqueda semántica.
 
-**Columnas:**
-```
-numero_expediente | year | doc_type | source_file | original_snippet | cleaned_text | original_len | cleaned_len | noisy | reversed_fixed
-```
+| Archivo | Responsabilidad |
+|---|---|
+| `tc_pipeline/nlp/processing.py` | Preprocesamiento y partición de texto. Extrae y concatena `motivos_demanda` + `fundamentos` por registro, limpia caracteres de control, y aplica **chunking por ventana deslizante** (tokens con solapamiento configurable) para documentos largos. Construye la metadata de cada chunk (`numero_expediente`, `tipo_expediente`, `sentido_resolucion`). |
+| `tc_pipeline/nlp/embeddings.py` | Wrapper del modelo `paraphrase-multilingual-MiniLM-L12-v2` (384 dimensiones). Expone `embed_texts()` para vectorización en lote y `compute_embedding_quality()` para diagnóstico de la calidad del espacio vectorial. |
+| `src/indexing/chroma_pipeline.py` | Orquestador ETL completo. Lee los CSV de `data/merged/`, invoca `build_chunks_for_record` de `processing.py`, y carga los vectores en la colección `jurisprudencia_tc` de ChromaDB en lotes de 500. Implementa `SentenceTransformerEmbeddingFunction` como adaptador de ChromaDB. Borra y recrea la colección en cada ejecución para garantizar reinicios limpios. |
+| `tc_pipeline/ml-training/data_loader.py` | **Agrupación y Mean Pooling.** Dado que el chunking produce múltiples vectores por expediente, este módulo los agrupa por `numero_expediente` y calcula el **centroide aritmético** de todos los chunks, generando una única representación semántica densa por caso judicial. Retorna las matrices `X` (embeddings consolidados) e `y` (etiquetas) listas para entrenamiento. |
 
-**Ejemplo de fila:**
-```
-2001-1234-TC | 2015 | sentencia | data/sentencia-Extract/2015/sentencia-pdf-2015.csv | Lorem ipsum dolor... | [texto limpio] | 5432 | 4821 | False | False
-```
-
-### 2. Reporte Markdown
-**Archivo:** `docs/cleaning-merge-report.md`
-
-**Contenido:**
-- Resumen: Total de registros, años excluidos
-- Estadísticas por año (contador de registros)
-- Conteos: registros ruidosos, invertidos corregidos
-- Ruta del CSV consolidado
+**Artefactos producidos:** `data/chroma_storage/` (base de datos vectorial persistente), `DatasetResult(X, y)` en memoria.
 
 ---
 
-## ⚙️ Cómo Ejecutar
+## Capa 4 — Entrenamiento y Evaluación del Modelo Predictivo
 
-### Opción 1: Ejecución Directa
+Responsable de entrenar el clasificador XGBoost sobre los embeddings consolidados y evaluar su fiabilidad con métricas de clasificación multiclase.
 
-```bash
-# Desde la raíz del proyecto
-python scripts/clean_and_merge.py
+| Archivo | Responsabilidad |
+|---|---|
+| `tc_pipeline/config.py → MLConfig` | Centraliza todos los hiperparámetros del clasificador XGBoost (`n_estimators=300`, `max_depth=6`, `learning_rate=0.05`, `objective='multi:softprob'`, `eval_metric='mlogloss'`), la proporción de split (80/20), el `random_state=42` y las rutas de serialización de artefactos. |
+| `tc_pipeline/ml-training/model_trainer.py` | Codifica las etiquetas categóricas con `LabelEncoder`, realiza la partición estratificada 80/20 (`stratify=y_encoded`), entrena el `XGBClassifier`, y serializa los artefactos: `models/xgb_classifier.json` (modelo) y `models/label_encoder.joblib` (encoder). |
+| `tc_pipeline/ml-training/model_evaluator.py` | Evaluación rigurosa e independiente: **Accuracy global**, **Matriz de Confusión** completa, **Classification Report** (Precisión/Recall/F1 por clase + promedios macro y ponderado) y **ROC-AUC One-vs-Rest macro**. Exporta el reporte a `models/evaluation_report.txt`. También provee `load_and_evaluate()` para carga de artefactos desde disco en pipelines de CI/CD. |
+
+**Artefactos producidos:** `models/xgb_classifier.json`, `models/label_encoder.joblib`, `models/evaluation_report.txt`.
+
+---
+
+## Capa 5 — Servicios RAG, Orquestación y API
+
+Responsable de exponer los modelos e integrar el agente completo (LLM + predictor + ChromaDB) a través de la API y la interfaz de usuario.
+
+| Archivo | Responsabilidad |
+|---|---|
+| `src/agent/rag_service.py` | Orquestador RAG completo. Ejecuta búsquedas semánticas sobre ChromaDB (`retrieve_context`), construye el prompt con los fragmentos recuperados, invoca al LLM **Qwen3-32B vía Groq** con salida JSON estructurada, y retorna un `BriefResponse` con el análisis argumentativo y las fuentes. |
+| `tc_pipeline/api/schemas.py` | Contratos Pydantic de entrada/salida entre agentes: `MotivosDemandaRequest`, `QueryRequest`, `BriefResponse`, `PrediccionRequest`, `PrediccionResponse`, `ExpedienteBase`, y `HealthResponse`. |
+| `tc_pipeline/api/routes.py` | Router FastAPI con los endpoints operativos (scraping masivo, health check, datasets) y los stubs pendientes de integración (`/query`, `/prediccion`). |
+| `tc_pipeline/api/main.py` | Aplicación FastAPI con configuración de CORS, lifespan de startup/shutdown, y montaje del router en `/api/v1`. |
+
+---
+
+## Capa 6 — Interfaz de Usuario *(pendiente de implementación)*
+
+La interfaz permitirá al usuario final probar el agente constitucional completo sin acceso al Swagger, con la siguiente experiencia de uso:
+
+1. **Entrada:** El usuario describe el tipo de acción constitucional que quiere interponer y expone los motivos y fundamentos de su demanda.
+2. **Procesamiento:** El orquestador ejecuta en paralelo el `PredictorService` (XGBoost → probabilidad de fallo) y el `RAGService` (Qwen3-32B → análisis argumentativo con jurisprudencia recuperada).
+3. **Salida:** La UI muestra:
+   - Badge visual del **sentido predicho** (Fundada / Infundada / Improcedente) con barra de confianza.
+   - **Análisis del LLM** con el fundamento jurídico clave y el resumen del caso.
+   - **Casos similares** recuperados de ChromaDB: número de expediente, tipo de proceso, sentido previo y enlace al archivo del TC.
+
+**Archivo a crear:** `src/ui/index.html` — SPA en HTML/CSS/JS puro, sin frameworks, consumiendo el endpoint `POST /api/v1/analizar`.
+
+---
+
+## Diagrama de Flujo del Sistema
+
 ```
-
-### Opción 2: Desde Python REPL
-
-```python
-import sys
-sys.path.insert(0, '.')
-from scripts.clean_and_merge import main
-main()
+ CSV (data/merged/)
+       │
+       ▼
+[chroma_pipeline.py]  ──→  ChromaDB (data/chroma_storage/)
+ chunking + indexación               │
+                                     │
+                         ┌───────────┼───────────────┐
+                         │           │               │
+                    [data_loader]  [RAGService]  [búsqueda
+                    mean pooling   semántica]    semántica UI]
+                         │
+                    [model_trainer]
+                         │
+                    [model_evaluator]
+                         │
+                    models/ (xgb_classifier.json
+                             label_encoder.joblib)
+                         │
+              ┌──────────┴──────────────┐
+              │                        │
+      [PredictorService]        [RAGService]
+              │                        │
+              └──────────┬─────────────┘
+                         │
+                  [orchestrator.py]
+                         │
+                  [FastAPI /analizar]
+                         │
+                  [src/ui/index.html]
 ```
-
-### Opción 3: Desde otro script
-
-```python
-from scripts.clean_and_merge import process_dir, clean_text_block
-# Personalizar el flujo según necesidad
-```
-
----
-
-## 🐛 Manejo de Casos Especiales
-
-### Caso 1: `fundamentos` Vacío
-- Se recurre a `attachment.content`
-- Si ambos vacíos → fila omitida en procesamiento
-
-### Caso 2: Texto con Caracteres Unicode Inválidos
-- `normalize_text()` aplica NFC normalization
-- Caracteres de reemplazo `✗` (`\ufffd`) se detectan como ruido
-
-### Caso 3: Texto Truncado o Corrupto
-- Se marca con `noisy=True`
-- Se mantiene en CSV para auditoría
-- Se reporta en `cleaning-merge-report.md`
-
-### Caso 4: Texto Completamente Invertido
-- Se detecta si tokens comunes aparecen **invertidos pero no en normal**
-- Se invierte la cadena completa
-- Se marca con `reversed_fixed=True`
-
----
-
-## 📈 Integración con Fase 3
-
-Una vez ejecutado `clean_and_merge.py`:
-
-1. **CSVs por año** (`data/merged/expedientes_cleaned_{year}.csv`)
-   - Entrada para **chunking y embeddings** (Fase 3)
-   - Entrada para **feature engineering** (Fase 3)
-
-2. **Flags de auditoría** (`noisy`, `reversed_fixed`)
-   - Permiten filtrado de datos de baja confianza
-   - Útil para validación manual posterior
-
-3. **Metadatos preservados** (`year`, `doc_type`, `source_file`)
-   - Necesarios para trazabilidad
-   - Importantes para análisis downstream
-
----
-
-## 🚀 Próximos Pasos (Post-Ejecución)
-
-1. **Verificar salida CSV:**
-   ```bash
-   # Inspeccionar primeras filas
-   python -c "import pandas as pd; df=pd.read_csv('data/merged/expedientes_cleaned_2023.csv'); print(df.head(10))"  # usa cualquier año disponible en data/merged/
-   ```
-
-2. **Revisar reporte:**
-   ```bash
-   cat docs/cleaning-merge-report.md
-   ```
-
-3. **Análisis de calidad:**
-   - Contar registros por año
-   - Verificar % de ruido
-   - Revisar ejemplos de texto invertido corregido
-
-4. **Proceder a Fase 3:**
-   - Usar CSV como entrada para chunking
-   - Iniciar indexación en ChromaDB
-
----
-
-## 📝 Notas Finales
-
-- El script es **idempotente**: puede ejecutarse múltiples veces sin efectos secundarios
-- Los archivos source (CSVs en `Extract/`) no se modifican
-- El reporte se sobrescribe en cada ejecución
-- Todas las funciones están **bien documentadas** con docstrings
-- Compatible con **Python 3.11.15** (versión recomendada del proyecto)
-
----
-
-**Status:** ✅ **LISTO PARA EJECUTAR**
-
----
-
-# Cleaning & Merge Report — Resultados de Ejecución Fase 2
-
-**Fecha de ejecución:** 2026-06-22
-
-## Resumen
-
-El script `scripts/clean_and_merge.py` está configurado para procesar exclusivamente los años 2004-2010.
-El directorio `data/merged/` contiene CSVs ya generados para los años 1996-2026 a partir de ejecuciones previas, pero la configuración actual no re-procesa años fuera de 2004-2010.
-
-## Uso actual
-
-- Ejecutar `python scripts/clean_and_merge.py` generará un CSV por año en `data/merged/expedientes_cleaned_{year}.csv` para cada año en 2004-2010.
-- Los registros sin texto válido se omiten de la salida final.
-- El reporte de ejecución `docs/cleaning-merge-report.md` se sobrescribe en cada ejecución.
-
-## Archivos Generados
-
-CSVs por año: `data/merged/expedientes_cleaned_{year}.csv` (1 archivo por cada año procesado)
-- 10 columnas con metadatos y flags de auditoría
-- Listo para chunking, embeddings e indexación en Fase 3
