@@ -147,7 +147,39 @@ def train(
         n_classes - 1,
     )
 
-    # ── 2. Partición estratificada 80 / 20 ────────────────────────────────────
+    # ── 2. Filtrar clases singleton (< 2 muestras) ────────────────────────────
+    # train_test_split con stratify exige al menos 2 muestras por clase.
+    # Las clases con 1 sola muestra suelen ser typos o combinaciones rarísimas
+    # que no aportan información estadística al modelo.
+    unique_classes, class_counts = np.unique(y_encoded, return_counts=True)
+    valid_classes = unique_classes[class_counts >= 2]
+    n_dropped_classes = len(unique_classes) - len(valid_classes)
+
+    if n_dropped_classes > 0:
+        mask = np.isin(y_encoded, valid_classes)
+        n_dropped_samples = int((~mask).sum())
+        logger.warning(
+            "Se eliminaron %d clases singleton y %d muestras asociadas "
+            "para permitir la partición estratificada.",
+            n_dropped_classes,
+            n_dropped_samples,
+        )
+        X = X[mask]
+        y_encoded = y_encoded[mask]
+
+        # Re-codificar para que los índices sean contiguos (0..N-1).
+        # Usamos el encoder ORIGINAL (ya fiteado) para recuperar los strings,
+        # luego fiteamos uno nuevo sobre el subconjunto filtrado.
+        y_labels_filtered = encoder.inverse_transform(y_encoded)
+        encoder = LabelEncoder()
+        y_encoded = encoder.fit_transform(y_labels_filtered)
+        class_names = list(encoder.classes_)
+        n_classes = len(class_names)
+        logger.info(
+            "Clases tras filtrado: %d → índices 0..%d", n_classes, n_classes - 1
+        )
+
+    # ── 3. Partición estratificada 80 / 20 ────────────────────────────────────
     logger.info(
         "Dividiendo el dataset (test_size=%.0f%%, random_state=%d, stratify=True)...",
         cfg.test_size * 100,
