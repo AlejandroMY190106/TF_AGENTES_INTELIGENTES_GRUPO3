@@ -66,27 +66,9 @@ router = APIRouter()
 # ── Almacenamiento ──────────────────────────────────────────────────────
 _config = PipelineConfig()
 
-# ── Instanciación de Servicios (Singletons tolerantes a fallos) ────────
+# ── Instanciación de Servicios (Singletons inicializados en lifespan) ──
 _rag_service: RAGService | None = None
 _predictor_service: PredictorService | None = None
-
-try:
-    _rag_service = RAGService()
-except Exception as _e:
-    logger.warning(
-        "⚠️ RAGService no pudo inicializarse durante el arranque del router: %s. "
-        "El endpoint /query no estará funcional.",
-        _e,
-    )
-
-try:
-    _predictor_service = PredictorService()
-except Exception as _e:
-    logger.warning(
-        "⚠️ PredictorService no pudo inicializarse durante el arranque del router: %s. "
-        "El endpoint /prediccion no estará funcional.",
-        _e,
-    )
 
 # ── Estado de tareas en memoria ─────────────────────────────────────────
 _tasks: dict[str, ScrapingStatus] = {}

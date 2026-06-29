@@ -57,6 +57,43 @@ async def lifespan(app: FastAPI):
         dir_path.mkdir(parents=True, exist_ok=True)
     logger.info("📁 Estructura de directorios del pipeline verificada.")
 
+    # ── Inicialización asíncrona diferida de Agentes (RAG y Inferencia) ──
+    from src.agent.rag_service import RAGService
+    from src.agent.predictor_service import PredictorService
+    import tc_pipeline.api.routes as routes
+
+    # RAG Service (Groq + ChromaDB)
+    try:
+        logger.info("Cargando RAGService en lifespan...")
+        rag_instance = RAGService()
+        app.state.rag_service = rag_instance
+        routes._rag_service = rag_instance
+        logger.info("✅ RAGService inicializado correctamente.")
+    except Exception as exc:
+        logger.warning(
+            "⚠️ RAGService no pudo inicializarse (ChromaDB no creada/vacia o Groq desconfigurada): %s. "
+            "El servicio RAG de la API no estará disponible temporalmente.",
+            exc,
+        )
+        app.state.rag_service = None
+        routes._rag_service = None
+
+    # Predictor Service (XGBoost + Embeddings)
+    try:
+        logger.info("Cargando PredictorService en lifespan...")
+        predictor_instance = PredictorService()
+        app.state.predictor_service = predictor_instance
+        routes._predictor_service = predictor_instance
+        logger.info("✅ PredictorService inicializado correctamente.")
+    except Exception as exc:
+        logger.warning(
+            "⚠️ PredictorService no pudo inicializarse (Falta modelo o codificador en models/): %s. "
+            "El servicio Predictor de la API no estará disponible temporalmente.",
+            exc,
+        )
+        app.state.predictor_service = None
+        routes._predictor_service = None
+
     yield
 
     # ── Shutdown ─────────────────────────────────────────────────────
@@ -76,7 +113,7 @@ app = FastAPI(
         "- 🔧 **Agente de Curación**: Pipeline de extracción, limpieza e imputación\n"
         "- 🔍 **Agente RAG**: Recuperación semántica y generación de briefs ejecutivos\n"
         "- 📊 **Agente Predictivo**: Predicción del sentido del fallo\n\n"
-        "**Estado actual:** Fase 1 — Pipeline de extracción operativo"
+        "**Estado actual:** Fase 4 — Agentes RAG y Predictivo activos (tolerantes a fallos de arranque)"
     ),
     version="0.1.0",
     docs_url="/docs",
