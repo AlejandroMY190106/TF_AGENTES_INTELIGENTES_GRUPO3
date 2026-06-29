@@ -620,10 +620,13 @@
 
                 <!-- Columna RAG (Análisis LLM) -->
                 <div class="glass-card" style="display: flex; flex-direction: column;">
-                    <span class="panel-title" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary)"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                        Análisis Argumentativo (LLM)
-                    </span>
+                    <div class="prediction-header">
+                        <span class="panel-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary)"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                            Análisis Argumentativo (LLM)
+                        </span>
+                        <span class="badge-veredicto" id="rag-sugerido-badge" style="display: none;">FUNDADA</span>
+                    </div>
                     <div class="rag-content" id="rag-brief-content">
                         <!-- Brief en Markdown -->
                     </div>
@@ -802,11 +805,24 @@
 
             // 3. Renderizar RAG Brief
             const ragContentContainer = document.getElementById('rag-brief-content');
+            const ragBadge = document.getElementById('rag-sugerido-badge');
+            
             if (data.brief) {
                 // marked.parse convierte Markdown en HTML seguro
                 ragContentContainer.innerHTML = marked.parse(data.brief);
+                
+                // Mostrar y colorear el sentido sugerido por el LLM en la cabecera
+                const sentidoSugerido = (data.metadata && data.metadata.sentido_sugerido) || '';
+                if (sentidoSugerido) {
+                    ragBadge.textContent = sentidoSugerido;
+                    ragBadge.className = `badge-veredicto ${getPredictionClass(sentidoSugerido)}`;
+                    ragBadge.style.display = 'inline-block';
+                } else {
+                    ragBadge.style.display = 'none';
+                }
             } else {
                 ragContentContainer.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">El agente RAG no pudo generar un informe doctrinal para esta consulta.</p>';
+                ragBadge.style.display = 'none';
             }
 
             // 4. Renderizar Casos Similares
@@ -820,16 +836,15 @@
             } else {
                 casesContainer.style.display = 'grid';
                 sources.forEach(src => {
-                    const meta = src.metadata || {};
-                    const caseNum = meta.numero_expediente || 'N/A';
-                    const caseType = meta.tipo_expediente || 'Constitucional';
-                    const sentido = meta.sentido_resolucion || 'Desconocido';
+                    const caseNum = src.numero_expediente || 'N/A';
+                    const caseType = src.tipo_expediente || 'Constitucional';
+                    const sentido = src.sentido_resolucion || 'Desconocido';
                     
                     const caseCard = document.createElement('div');
                     caseCard.className = 'case-item';
                     
-                    // Buscar en google el expediente
-                    const googleQuery = `https://www.google.com/search?q=TC+expediente+${encodeURIComponent(caseNum)}`;
+                    // Si el backend provee la URL oficial del TC, la usamos. De lo contrario, buscamos en Google.
+                    const linkUrl = src.url_archivo_TC || `https://www.google.com/search?q=TC+expediente+${encodeURIComponent(caseNum)}`;
 
                     caseCard.innerHTML = `
                         <div>
@@ -837,7 +852,7 @@
                             <div class="case-type">${caseType}</div>
                             <div class="case-resolution ${getPredictionClass(sentido)}">${sentido}</div>
                         </div>
-                        <a href="${googleQuery}" target="_blank" class="case-link">
+                        <a href="${linkUrl}" target="_blank" class="case-link">
                             <span>Ver en TC Perú</span>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
                         </a>
