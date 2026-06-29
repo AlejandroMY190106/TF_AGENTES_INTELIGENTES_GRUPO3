@@ -426,10 +426,21 @@ async def ingest_expedientes() -> dict[str, str]:
 @router.post("/query", response_model=BriefResponse, tags=["RAG (Fase 3)"])
 async def query_rag(request: QueryRequest) -> BriefResponse:
     """[Fase 3] Consulta al Agente RAG para generar un brief ejecutivo."""
-    raise HTTPException(
-        status_code=501,
-        detail="Agente RAG pendiente de implementación (Fase 3).",
-    )
+    if _rag_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Servicio RAG no disponible. Verifica que la base de datos de ChromaDB esté creada y poblada.",
+        )
+    try:
+        import asyncio
+        response = await asyncio.to_thread(_rag_service.generate_answer, request.query)
+        return response
+    except Exception as e:
+        logger.error("Error en endpoint /query: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno procesando la consulta RAG: {str(e)}"
+        )
 
 
 @router.post(
@@ -439,7 +450,46 @@ async def query_rag(request: QueryRequest) -> BriefResponse:
 )
 async def prediccion(request: PrediccionRequest) -> PrediccionResponse:
     """[Fase 4] Predicción del sentido del fallo con el Agente Predictivo."""
-    raise HTTPException(
-        status_code=501,
-        detail="Agente Predictivo pendiente de implementación (Fase 4).",
-    )
+    if _predictor_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Servicio Predictor no disponible. Verifica que los modelos (.json y .joblib) estén en la carpeta 'models/'.",
+        )
+    try:
+        import asyncio
+        pred_dict = await asyncio.to_thread(_predictor_service.predict, request.motivos_demanda)
+        return PrediccionResponse(
+            prediccion=pred_dict["prediccion"],
+            probabilidades=pred_dict["probabilidades"],
+            modelo="XGBoost (Baseline)",
+            confianza=pred_dict["confianza"]
+        )
+    except Exception as e:
+        logger.error("Error en endpoint /prediccion: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno procesando la predicción: {str(e)}"
+        )
+
+
+@router.post(
+    "/analizar",
+    response_model=AnalisisCompletoResponse,
+    tags=["Agente Completo"],
+)
+async def analizar(request: AnalisisCompletoRequest) -> AnalisisCompletoResponse:
+    """[Fase 4] Análisis constitucional unificado de caso (RAG + Predictivo XGBoost)."""
+    try:
+        response = await analizar_caso(
+            texto_demanda=request.motivos,
+            rag=_rag_service,
+            predictor=_predictor_service
+        )
+        return response
+    except Exception as e:
+        logger.error("Error en endpoint /analizar: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno en el orquestador de análisis: {str(e)}"
+        )
+
