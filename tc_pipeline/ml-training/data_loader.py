@@ -150,10 +150,14 @@ def load_dataset(cfg: MLConfig | None = None) -> DatasetResult:
                 f"Error al recuperar embeddings (offset={offset}): {exc}"
             ) from exc
 
-        fetched_embeddings = result.get("embeddings") or []
-        fetched_metadatas = result.get("metadatas") or []
+        # ChromaDB devuelve embeddings como numpy array; usar `or []` o `not`
+        # sobre un array lanza ValueError. Se usan comprobaciones explícitas.
+        _emb = result.get("embeddings")
+        fetched_embeddings = _emb if _emb is not None else []
+        _meta = result.get("metadatas")
+        fetched_metadatas = _meta if _meta is not None else []
 
-        if not fetched_embeddings:
+        if len(fetched_embeddings) == 0:
             # La paginación se agotó antes de llegar al total declarado
             logger.warning(
                 "La respuesta de ChromaDB devolvió 0 embeddings en offset=%d. "
@@ -162,7 +166,12 @@ def load_dataset(cfg: MLConfig | None = None) -> DatasetResult:
             )
             break
 
-        all_embeddings.extend(fetched_embeddings)
+        # Convertir a lista por si ChromaDB devuelve numpy array
+        all_embeddings.extend(
+            fetched_embeddings.tolist()
+            if hasattr(fetched_embeddings, "tolist")
+            else fetched_embeddings
+        )
         all_metadatas.extend(fetched_metadatas)
         offset += len(fetched_embeddings)
 
