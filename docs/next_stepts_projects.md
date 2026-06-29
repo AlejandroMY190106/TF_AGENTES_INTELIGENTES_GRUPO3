@@ -13,8 +13,9 @@ El foco de desarrollo se desplaza ahora hacia la **optimización del desempeño 
 | Nuevo algoritmo predicción | `tc_pipeline/ml-training/model_trainer_<nombre>.py` | ⏳ Pendiente implementación |
 | Evaluación del modelo | `tc_pipeline/ml-training/model_evaluator.py` | ⚠️ Acoplado a XGBoost — requiere compatibilización |
 | Servicio RAG | `src/agent/rag_service.py` | ⚠️ Prompt sin anclaje a predicción del modelo |
-| API FastAPI | `tc_pipeline/api/` | ✅ Completo |
-| Interfaz de usuario | `src/ui/index.html` | ✅ Completo |
+| API FastAPI — routes | `tc_pipeline/api/routes.py` | ✅ Completo — `/query`, `/prediccion` y `/analizar` activos |
+| API FastAPI — main | `tc_pipeline/api/main.py` | ⚠️ No sirve la UI — falta montar `StaticFiles` |
+| Interfaz de usuario | `src/ui/index.html` | ⚠️ Funcional pero solo accesible via archivo local — pendiente servir desde FastAPI |
 
 ---
 
@@ -118,6 +119,44 @@ El foco de desarrollo se desplaza ahora hacia la **optimización del desempeño 
 		2. Cambiar la estrategia de ejecución: en lugar de correr ambos servicios de forma 100% paralela, ejecutar primero el `PredictorService` (que es más rápido al ser inferencia local) y luego pasar su resultado al `RAGService`. Alternativamente, si se mantiene la ejecución paralela, ejecutar el RAG en una segunda fase secuencial, una vez conocida la predicción.
 		3. Extraer `prediccion` (la clase predicha con mayor probabilidad) y `confianza_prediccion` (su probabilidad numérica) del resultado del `PredictorService` y pasarlos como argumentos en la invocación `rag_service.generate_answer(query=query, prediccion=prediccion, confianza_prediccion=confianza_prediccion)`.
 		4. Manejar el caso de falla parcial del predictor: si `PredictorService` falla y no hay predicción disponible, invocar `generate_answer()` sin los parámetros opcionales (comportamiento actual) para que el RAG funcione de manera degradada pero no se rompa.
+
+---
+
+### 3 — Servir la Interfaz de Usuario desde FastAPI
+
+**Contexto:** La interfaz `src/ui/index.html` es funcional y permite probar el agente completo, pero actualmente solo es accesible abriendo el archivo directamente desde el sistema de archivos (e.g. via el Integrated Browser de VSCode). Esto es incómodo porque el navegador puede bloquear las peticiones `fetch` por política de CORS cuando el HTML no se sirve desde el mismo origen que la API. La solución es montar el directorio `src/ui/` como archivos estáticos en FastAPI para que la UI sea accesible en `http://localhost:8000/` o `http://localhost:8000/ui`.
+
+---
+
+**tc_pipeline/api/main.py**
+	Objetivo: Montar el directorio `src/ui/` como archivos estáticos en la aplicación FastAPI para que `index.html` sea accesible directamente desde el servidor de desarrollo sin necesidad de abrirlo como archivo local.
+	Estado actual: La aplicación monta únicamente el router de API en el prefijo `/api/v1` (línea 134). El endpoint `GET /` retorna un JSON con información de la API (líneas 140–148). No existe ninguna configuración de `StaticFiles`. La UI solo puede abrirse como archivo local desde el sistema de archivos.
+	Instrucciones de modificacion:
+		1. Agregar la importación de `StaticFiles` al bloque de imports de FastAPI: `from fastapi.staticfiles import StaticFiles`.
+		2. Calcular la ruta absoluta al directorio `src/ui/` usando `pathlib.Path` relativo a la raíz del proyecto, de forma equivalente a como ya se resuelve `_PROJECT_ROOT` en otros módulos:
+			```python
+			_UI_DIR = Path(__file__).resolve().parents[2] / "src" / "ui"
+			```
+		3. Después de la línea `app.include_router(router, prefix="/api/v1")`, montar el directorio estático **solo si existe**, para evitar errores de startup si el directorio no está presente:
+			```python
+			if _UI_DIR.exists():
+			    app.mount("/ui", StaticFiles(directory=str(_UI_DIR), html=True), name="ui")
+			    logger.info("🌐 UI montada en /ui → %s", _UI_DIR)
+			else:
+			    logger.warning("⚠️ Directorio UI no encontrado en %s. La interfaz no estará disponible en /ui.", _UI_DIR)
+			```
+		4. Modificar el endpoint `GET /` (líneas 140–148) para que redirija automáticamente a `/ui` cuando la UI esté disponible, en lugar de retornar solo el JSON. Usar `RedirectResponse` de `fastapi.responses`:
+			```python
+			from fastapi.responses import RedirectResponse
+
+			@app.get("/", tags=["Root"], include_in_schema=False)
+			async def root():
+			    """Redirige a la interfaz de usuario si está disponible."""
+			    if _UI_DIR.exists():
+			        return RedirectResponse(url="/ui")
+			    return {"service": "Sistema Multiagente TC", "version": "0.1.0", "docs": "/docs"}
+			```
+		5. Verificar que el middleware CORS ya configurado (`allow_origins=["*"]`) cubra las peticiones desde `http://localhost:8000` sin necesidad de cambios adicionales — esto ya está correcto en la implementación actual.
 
 ---
 
