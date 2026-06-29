@@ -1,4 +1,4 @@
-﻿"""
+"""
 remove_csv_duplicates.py
 ------------------------
 Elimina filas duplicadas de todos los archivos CSV en la carpeta data/merged.
@@ -17,6 +17,10 @@ import os
 import csv
 import io
 import sys
+
+# Algunos campos de texto (fundamentos, motivos) superan el limite por defecto
+# de 131,072 bytes del modulo csv. Esta linea elimina dicho limite.
+csv.field_size_limit(sys.maxsize)
 
 # ----------------------------------------------
 # CONFIGURACION
