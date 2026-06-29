@@ -32,6 +32,25 @@ class ExpedienteBase(BaseModel):
     fundamentos: str | None = Field(None, description="Texto limpio extraído de los fundamentos de la sentencia")
 
 
+class ExpedienteAPI(ExpedienteBase):
+    """Expediente tal como llega del endpoint de la API del TC."""
+
+    nombre_demandante: str | None = Field(None, description="Nombre del demandante")
+    nombre_demandado: str | None = Field(None, description="Nombre del demandado")
+    url_archivo: str | None = Field(None, description="URL al PDF de la sentencia")
+    fundamentos: str | None = Field(None, description="Texto de los fundamentos")
+    palabras: list[dict[str, Any]] | None = Field(
+        None, description="Palabras clave / materias jerárquicas"
+    )
+    distrito_judicial: str | None = Field(None, description="Distrito judicial de origen")
+
+    sentencia_sala_id: int | None = None
+    sentencia_sentido_id: int | None = None
+    sentencia_tipo_id: int | None = None
+
+    model_config = {"extra": "allow"}
+
+
 # ─── Inputs de Usuario / Frontend ─────────────────────────────────────────
 
 class MotivosDemandaRequest(BaseModel):
@@ -123,3 +142,84 @@ class AnalisisCompletoResponse(BaseModel):
     probabilidades: dict[str, float] = Field(default_factory=dict, description="Probabilidad estimada por cada clase de fallo")
     modelo: str = Field(..., description="Modelo predictivo utilizado")
     confianza: float = Field(..., description="Nivel de confianza de la predicción (0.0 a 1.0)")
+
+
+# ─── Pipeline de Scraping Masivo ─────────────────────────────────────────
+
+class ScrapingRequest(BaseModel):
+    """Request para iniciar el scraping masivo."""
+
+    start_year: int = Field(
+        1992,
+        ge=1992,
+        le=2026,
+        description="Año de inicio",
+    )
+    end_year: int = Field(
+        2026,
+        ge=1992,
+        le=2026,
+        description="Año de fin",
+    )
+    phases: list[str] = Field(
+        default_factory=lambda: ["json", "download", "extract"],
+        description="Fases a ejecutar: json, download, extract",
+    )
+
+
+class ScrapingProgress(BaseModel):
+    """Progreso de una tarea de scraping."""
+
+    current_year: int | None = Field(None, description="Año en proceso")
+    current_phase: str | None = Field(None, description="Fase actual")
+    years_done: int = Field(0, description="Años completados")
+    total_years: int = Field(0, description="Total de años a procesar")
+    records_processed: int = Field(0, description="Registros procesados")
+    pdfs_downloaded: int = Field(0, description="PDFs descargados")
+    pdfs_extracted: int = Field(0, description="PDFs con texto extraído")
+
+
+class ScrapingStatus(BaseModel):
+    """Estado de una tarea de scraping."""
+
+    task_id: str = Field(..., description="ID de la tarea")
+    status: str = Field(
+        "pending",
+        description="Estado: pending, running, completed, failed, cancelled",
+    )
+    progress: ScrapingProgress = Field(
+        default_factory=ScrapingProgress,
+        description="Progreso actual",
+    )
+    errors: list[str] = Field(
+        default_factory=list,
+        description="Errores acumulados",
+    )
+    started_at: str | None = Field(None, description="Timestamp de inicio")
+    finished_at: str | None = Field(None, description="Timestamp de fin")
+
+
+class DatasetInfo(BaseModel):
+    """Información de un CSV generado."""
+
+    filename: str
+    path: str
+    year: int
+    doc_type: str
+    size_bytes: int = 0
+
+
+class DatasetListResponse(BaseModel):
+    """Lista de datasets/CSVs disponibles."""
+
+    json_csvs: list[DatasetInfo] = Field(
+        default_factory=list, description="CSVs de metadata JSON"
+    )
+    sentencia_csvs: list[DatasetInfo] = Field(
+        default_factory=list, description="CSVs de texto de sentencias"
+    )
+    auto_csvs: list[DatasetInfo] = Field(
+        default_factory=list, description="CSVs de texto de autos/resoluciones"
+    )
+    total_files: int = Field(0, description="Total de archivos")
+
