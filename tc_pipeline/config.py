@@ -180,7 +180,7 @@ class MLConfig:
     rf_min_samples_leaf: int = 1
     rf_max_features: str = "sqrt"
     rf_class_weight: str = "balanced"
-    rf_n_jobs: int = -1
+    rf_n_jobs: int = 6
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
