@@ -21,6 +21,8 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 
 from tc_pipeline.api.routes import router
 from tc_pipeline.config import PipelineConfig
@@ -32,6 +34,9 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+# ── Ruta al directorio de la interfaz de usuario ────────────────────────
+_UI_DIR = Path(__file__).resolve().parents[2] / "src" / "ui"
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -133,16 +138,20 @@ app.add_middleware(
 # ── Montar router ────────────────────────────────────────────────────────
 app.include_router(router, prefix="/api/v1")
 
+# ── Montar interfaz de usuario como archivos estáticos ───────────────────
+if _UI_DIR.exists():
+    app.mount("/ui", StaticFiles(directory=str(_UI_DIR), html=True), name="ui")
+    logger.info("🌐 UI montada en /ui → %s", _UI_DIR)
+else:
+    logger.warning("⚠️ Directorio UI no encontrado en %s. La interfaz no estará disponible en /ui.", _UI_DIR)
+
 
 # ── Ruta raíz ────────────────────────────────────────────────────────────
 
 
-@app.get("/", tags=["Root"])
-async def root() -> dict[str, str]:
-    """Ruta raíz con información básica de la API."""
-    return {
-        "service": "Sistema Multiagente TC",
-        "version": "0.1.0",
-        "docs": "/docs",
-        "health": "/api/v1/health",
-    }
+@app.get("/", tags=["Root"], include_in_schema=False)
+async def root():
+    """Redirige a la interfaz de usuario si está disponible."""
+    if _UI_DIR.exists():
+        return RedirectResponse(url="/ui")
+    return {"service": "Sistema Multiagente TC", "version": "0.1.0", "docs": "/docs"}

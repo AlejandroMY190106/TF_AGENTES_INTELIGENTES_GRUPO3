@@ -30,7 +30,7 @@ class PipelineConfig:
     """Configuración inmutable del pipeline de scraping del Tribunal Constitucional.
 
     Attributes:
-        api_url: Endpoint de búsqueda cronológica de sentencias.
+        api_url: Endpoint principal de búsqueda avanzada de sentencias.
         user_agent: User-Agent para las peticiones HTTP.
         accept_header: Accept header para las peticiones HTTP.
         connect_timeout: Timeout de conexión en segundos (aplica a API y PDFs).
@@ -47,10 +47,6 @@ class PipelineConfig:
 
     # ── API del Tribunal Constitucional ──────────────────────────────────
     api_url: str = (
-        "https://jurisbackend.sedetc.gob.pe"
-        "/api/visitor/sentencia/busqueda/cronologico"
-    )
-    api_url_avanzada: str = (
         "https://jurisbackend.sedetc.gob.pe"
         "/api/visitor/sentencia/busqueda/avanzada"
     )
@@ -75,8 +71,6 @@ class PipelineConfig:
         default_factory=lambda: RETRYABLE_STATUS_CODES
     )
 
-    # ── Descargas (legacy) ───────────────────────────────────────────────
-    download_root: Path = Path("EXPEDIENTES")
     max_workers: int = 10
 
     # ── Nuevas rutas de datos (pipeline CSV) ─────────────────────────────
@@ -88,9 +82,6 @@ class PipelineConfig:
 
     # ── Extracción de PDF ────────────────────────────────────────────────
     pdf_extraction_timeout: float = 30.0  # Timeout por PDF individual (segundos)
-
-    # ── Manifiesto SQLite ────────────────────────────────────────────────
-    manifest_db: Path = Path("data/manifests/pipeline_state.db")
 
     # ── Helpers ──────────────────────────────────────────────────────────
 

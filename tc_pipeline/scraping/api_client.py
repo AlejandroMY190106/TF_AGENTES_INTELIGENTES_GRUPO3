@@ -165,8 +165,8 @@ class TribunalAPIClient:
 
         Args:
             params: Parámetros de query string para la petición.
-            url: URL del endpoint a consultar. Si no se provee,
-                 usa ``api_url`` (cronológico).
+             url: URL del endpoint a consultar. Si no se provee,
+                  usa ``api_url`` (búsqueda avanzada).
 
         Returns:
             Diccionario parseado del JSON de respuesta.
@@ -252,38 +252,6 @@ class TribunalAPIClient:
             total_items=pagination.get("total_item", 0),
         )
 
-    # ── Métodos públicos (API cronológica — legacy) ───────────────────────
-
-    def fetch_page(
-        self,
-        fecha_publicacion: str,
-        page: int = 1,
-        extra_filters: dict[str, Any] | None = None,
-    ) -> APIResponse:
-        """Consulta una página del endpoint **cronológico** (legacy).
-
-        Este endpoint NO devuelve ``sentido`` ni ``sistematizacion``.
-        Se mantiene para compatibilidad.  Para datos completos usar
-        ``fetch_page_avanzada``.
-
-        Args:
-            fecha_publicacion: Periodo en formato ``"YYYY-MM"``.
-            page: Número de página (1-indexed).
-            extra_filters: Filtros adicionales para la query string.
-
-        Returns:
-            APIResponse con los datos de la página solicitada.
-        """
-        params: dict[str, Any] = {
-            "fecha_publicacion": fecha_publicacion,
-            "page": page,
-        }
-        if extra_filters:
-            params.update(extra_filters)
-
-        raw = self._request_with_retry(params)
-        return self._parse_response(raw)
-
     # ── Métodos públicos (API avanzada — principal) ──────────────────────
 
     def fetch_page_avanzada(
@@ -318,9 +286,7 @@ class TribunalAPIClient:
             "palabras": "",
         }
 
-        raw = self._request_with_retry(
-            params, url=self._config.api_url_avanzada
-        )
+        raw = self._request_with_retry(params)
         return self._parse_response(raw)
 
     def fetch_period(self, periodo: str) -> list[dict[str, Any]]:
@@ -359,48 +325,6 @@ class TribunalAPIClient:
 
         logger.info(
             "Periodo %s completado: %d items recolectados.",
-            periodo,
-            len(all_items),
-        )
-        return all_items
-
-    def fetch_until_end(self, periodo: str) -> list[dict[str, Any]]:
-        """Descarga páginas de un periodo hasta que no haya más datos.
-
-        Similar a ``fetch_period``, pero no depende de ``total_pages``
-        del primer response — sigue consultando mientras haya datos.
-        Útil cuando la paginación de la API no es confiable.
-
-        Args:
-            periodo: Periodo en formato ``"YYYY-MM"``.
-
-        Returns:
-            Lista acumulada de todos los expedientes del periodo.
-        """
-        all_items: list[dict[str, Any]] = []
-        page = 1
-
-        while True:
-            response = self.fetch_page(periodo, page=page)
-
-            if not response.data:
-                logger.debug(
-                    "Periodo %s: página %d vacía, finalizando.",
-                    periodo,
-                    page,
-                )
-                break
-
-            all_items.extend(response.data)
-
-            if page >= response.total_pages:
-                break
-
-            page += 1
-            time.sleep(self._config.page_delay)
-
-        logger.info(
-            "Periodo %s (fetch_until_end): %d items recolectados.",
             periodo,
             len(all_items),
         )
