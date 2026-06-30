@@ -31,7 +31,6 @@ import os
 from typing import Optional, Any
 
 import numpy as np
-import xgboost as xgb
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import (
     accuracy_score,
@@ -67,7 +66,7 @@ def evaluate(
     y_test: np.ndarray,
     *,
     output_file: Optional[str] = None,
-    model_name: str = "XGBoost",
+    model_name: str = "Classifier",
 ) -> dict:
     """Evalúa el modelo entrenado sobre el conjunto de prueba y reporta métricas.
 
@@ -84,7 +83,7 @@ def evaluate(
        devueltas por ``predict_proba``.
 
     Args:
-        model: Clasificador ``XGBClassifier`` entrenado.
+        model: Clasificador entrenado (sklearn-compatible).
         encoder: ``LabelEncoder`` ajustado con las mismas clases del entrenamiento.
             Usado para mapear índices numéricos a nombres de clase legibles.
         X_test: Matriz de características del conjunto de prueba ``(n, d)``.
@@ -92,6 +91,7 @@ def evaluate(
         output_file: Ruta opcional a un archivo ``.txt`` donde se exportará el
             reporte completo además de mostrarse en consola. Si es ``None``, sólo
             se registra en el logger.
+        model_name: Nombre del modelo a mostrar en el reporte.
 
     Returns:
         Diccionario con las métricas clave:
@@ -282,6 +282,7 @@ def load_and_evaluate(
 
     logger.info("Cargando modelo (%s) desde: '%s'", model_type, model_path)
     if model_type.lower() == "xgboost":
+        import xgboost as xgb  # Importación local: solo si se necesita
         model = xgb.XGBClassifier()
         model.load_model(model_path)
     else:
@@ -293,32 +294,119 @@ def load_and_evaluate(
     return evaluate(model, encoder, X_test, y_test, output_file=output_file, model_name=model_type)
 
 
-# ─── Ejecución directa (smoke test + pipeline completo) ──────────────────────
+# ─── Ejecución directa — menú interactivo de selección de modelo ─────────────
 if __name__ == "__main__":
     _ML_DIR = os.path.dirname(__file__)
     if _ML_DIR not in sys.path:
         sys.path.insert(0, _ML_DIR)
 
-    from data_loader import load_dataset      # type: ignore[import-not-found]
-    from model_trainer_XGBoost import train   # type: ignore[import-not-found]
-
-    # ─── Importar config desde la raíz
+    # ─── Importar config y data loader ───────────────────────────────────────
     from tc_pipeline.config import MLConfig  # type: ignore[import-not-found]
+    from data_loader import load_dataset     # type: ignore[import-not-found]
+
+    # ─── Menú de selección ────────────────────────────────────────────────────
+    print()
+    print("=" * 60)
+    print("  📋  EVALUADOR DE MODELOS — TC Pipeline")
+    print("=" * 60)
+    print()
+    print("  Seleccione el modelo a evaluar:")
+    print()
+    print("    [1]  XGBoost")
+    print("    [2]  LogisticRegression")
+    print("    [3]  SVM  (Support Vector Machine)")
+    print()
+
+    while True:
+        opcion = input("  Ingrese una opción (1 / 2 / 3): ").strip()
+        if opcion in ("1", "2", "3"):
+            break
+        print("  ⚠  Opción inválida. Por favor ingrese 1, 2 o 3.")
 
     cfg = MLConfig()
 
-    # Carga y entrenamiento
-    dataset = load_dataset(cfg)
-    training_result = train(dataset.X, dataset.y, cfg)
+    # ─── Rutas de artefactos según selección ─────────────────────────────────
+    if opcion == "1":
+        _model_name   = "XGBoost"
+        _model_path   = str(cfg.model_artifact_path)
+        _encoder_path = str(cfg.encoder_artifact_path)
+        _report_file  = "models/evaluation_report_xgboost.txt"
+        _model_type   = "xgboost"
 
-    # Evaluación independiente
+    elif opcion == "2":
+        _model_name   = "LogisticRegression"
+        _model_path   = str(cfg.logreg_model_artifact_path)
+        _encoder_path = str(cfg.logreg_encoder_artifact_path)
+        _report_file  = "models/evaluation_report_logreg.txt"
+        _model_type   = "sklearn"
+
+    else:  # opcion == "3"
+        _model_name   = "SVM"
+        _model_path   = str(cfg.svm_model_artifact_path)
+        _encoder_path = str(cfg.svm_encoder_artifact_path)
+        _report_file  = "models/evaluation_report_svm.txt"
+        _model_type   = "sklearn"
+
+    # ─── Verificar que los artefactos existen ────────────────────────────────
+    if not os.path.isfile(_model_path) or not os.path.isfile(_encoder_path):
+        print()
+        print(f"  ❌  No se encontraron artefactos guardados para '{_model_name}'.")
+        print(f"       Modelo   : {_model_path}")
+        print(f"       Encoder  : {_encoder_path}")
+        print()
+        print("  → Ejecute primero el trainer correspondiente y vuelva a intentarlo.")
+        print()
+        sys.exit(1)
+
+    print(f"\n  ▶  Cargando modelo '{_model_name}' desde disco (sin re-entrenar)...\n")
+
+    # ─── Cargar modelo y encoder desde disco ─────────────────────────────────
+    import joblib
+    from sklearn.model_selection import train_test_split
+
+    if _model_type == "xgboost":
+        import xgboost as xgb
+        _model = xgb.XGBClassifier()
+        _model.load_model(_model_path)
+    else:
+        _model = joblib.load(_model_path)
+
+    _encoder = joblib.load(_encoder_path)
+    logger.info("Modelo '%s' cargado correctamente desde: %s", _model_name, _model_path)
+
+    # ─── Reproducir el split de test de forma determinista ───────────────────
+    # Filtra las mismas muestras que el trainer descartó (clases singleton),
+    # luego aplica el mismo train_test_split con random_state y test_size
+    # idénticos → X_test / y_test son exactamente los mismos que al entrenar.
+    dataset = load_dataset(cfg)
+
+    _mask   = np.isin(dataset.y, _encoder.classes_)
+    _X_filt = dataset.X[_mask]
+    _y_filt = _encoder.transform(dataset.y[_mask])
+
+    _, _X_test, _, _y_test = train_test_split(
+        _X_filt, _y_filt,
+        test_size=cfg.test_size,
+        random_state=cfg.random_state,
+        stratify=_y_filt,
+    )
+    logger.info("Split de test reproducido: %d muestras.", len(_y_test))
+
+    # ─── Evaluación ──────────────────────────────────────────────────────────
     metrics = evaluate(
-        model=training_result.model,
-        encoder=training_result.encoder,
-        X_test=training_result.X_test,
-        y_test=training_result.y_test,
-        output_file="models/evaluation_report.txt",
+        model=_model,
+        encoder=_encoder,
+        X_test=_X_test,
+        y_test=_y_test,
+        output_file=_report_file,
+        model_name=_model_name,
     )
 
-    print(f"\n✅ Accuracy     : {metrics['accuracy']:.4f}")
-    print(f"✅ ROC-AUC (OvR): {metrics['roc_auc_macro']}")
+    print()
+    print("=" * 60)
+    print(f"  ✅ Accuracy      : {metrics['accuracy']:.4f}  ({metrics['accuracy'] * 100:.2f}%)")
+    _roc = metrics["roc_auc_macro"]
+    print(f"  ✅ ROC-AUC (OvR) : {f'{_roc:.4f}' if _roc is not None else 'N/A'}")
+    print(f"  📄 Reporte       : {_report_file}")
+    print("=" * 60)
+    print()
