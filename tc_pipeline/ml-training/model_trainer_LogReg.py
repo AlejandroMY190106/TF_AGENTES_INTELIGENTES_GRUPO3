@@ -115,7 +115,6 @@ def train(
     # 4. Configuración y entrenamiento de LogisticRegression
     logger.info("Inicializando LogisticRegression multinomial...")
     model = LogisticRegression(
-        multi_class="multinomial",
         solver="lbfgs",
         C=1.0,
         max_iter=1000,
