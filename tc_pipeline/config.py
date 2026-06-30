@@ -119,12 +119,12 @@ class PipelineConfig:
 
 @dataclass(frozen=True)
 class MLConfig:
-    """Configuración inmutable del pipeline de entrenamiento XGBoost.
+    """Configuración inmutable del pipeline de entrenamiento de modelos ML.
 
-    Centraliza todos los hiperparámetros del clasificador multiclase, la
+    Centraliza todos los hiperparámetros de los clasificadores multiclase, la
     conectividad a ChromaDB y los parámetros de reproducibilidad del
     experimento. Actúa como única fuente de verdad para los módulos
-    ``data_loader``, ``model_trainer`` y ``model_evaluator``.
+    ``data_loader``, ``model_trainer_*`` y ``model_evaluator``.
 
     Attributes:
         chroma_db_path: Ruta al directorio de almacenamiento persistente de ChromaDB.
@@ -135,8 +135,8 @@ class MLConfig:
         test_size: Proporción del conjunto de prueba (0.0–1.0).
         random_state: Semilla global para reproducibilidad.
         models_output_dir: Directorio de salida para artefactos entrenados.
-        xgb_n_estimators: Número de árboles (rondas de boosting).
-        xgb_max_depth: Profundidad máxima de cada árbol base.
+        xgb_n_estimators: Número de árboles (rondas de boosting) para XGBoost.
+        xgb_max_depth: Profundidad máxima de cada árbol base para XGBoost.
         xgb_learning_rate: Tasa de aprendizaje (eta) del boosting.
         xgb_subsample: Fracción de muestras usadas por árbol.
         xgb_colsample_bytree: Fracción de features usadas por árbol.
@@ -145,6 +145,13 @@ class MLConfig:
         xgb_use_label_encoder: Deshabilita el codificador interno (gestionamos con sklearn).
         xgb_tree_method: Motor de árboles; 'hist' es el más eficiente en CPU.
         xgb_n_jobs: Workers en paralelo (-1 = todos los núcleos disponibles).
+        rf_n_estimators: Número de árboles del bosque aleatorio.
+        rf_max_depth: Profundidad máxima de cada árbol (None = sin límite).
+        rf_min_samples_split: Mínimo de muestras para dividir un nodo interno.
+        rf_min_samples_leaf: Mínimo de muestras requeridas en una hoja.
+        rf_max_features: Número de features a considerar en cada split.
+        rf_class_weight: Estrategia de pesos por clase ('balanced' compensa desbalance).
+        rf_n_jobs: Workers en paralelo (-1 = todos los núcleos disponibles).
     """
 
     # ── ChromaDB ─────────────────────────────────────────────────────────────
@@ -174,6 +181,15 @@ class MLConfig:
     xgb_use_label_encoder: bool = False
     xgb_tree_method: str = "hist"
     xgb_n_jobs: int = -1
+
+    # ── Hiperparámetros Random Forest ────────────────────────────────────────
+    rf_n_estimators: int = 300
+    rf_max_depth: int | None = None
+    rf_min_samples_split: int = 2
+    rf_min_samples_leaf: int = 1
+    rf_max_features: str = "sqrt"
+    rf_class_weight: str = "balanced"
+    rf_n_jobs: int = -1
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -208,6 +224,16 @@ class MLConfig:
         return self.models_output_dir / "svm_label_encoder.joblib"
 
     @property
+    def rf_model_artifact_path(self) -> Path:
+        """Ruta completa al archivo joblib del modelo Random Forest serializado."""
+        return self.models_output_dir / "rf_classifier.joblib"
+
+    @property
+    def rf_encoder_artifact_path(self) -> Path:
+        """Ruta completa al archivo joblib del LabelEncoder de Random Forest."""
+        return self.models_output_dir / "rf_label_encoder.joblib"
+
+    @property
     def xgb_params(self) -> dict:
         """Diccionario de hiperparámetros listo para pasarse al XGBClassifier."""
         return {
@@ -221,5 +247,19 @@ class MLConfig:
             "use_label_encoder": self.xgb_use_label_encoder,
             "tree_method": self.xgb_tree_method,
             "n_jobs": self.xgb_n_jobs,
+            "random_state": self.random_state,
+        }
+
+    @property
+    def rf_params(self) -> dict:
+        """Diccionario de hiperparámetros listo para pasarse al RandomForestClassifier."""
+        return {
+            "n_estimators": self.rf_n_estimators,
+            "max_depth": self.rf_max_depth,
+            "min_samples_split": self.rf_min_samples_split,
+            "min_samples_leaf": self.rf_min_samples_leaf,
+            "max_features": self.rf_max_features,
+            "class_weight": self.rf_class_weight,
+            "n_jobs": self.rf_n_jobs,
             "random_state": self.random_state,
         }

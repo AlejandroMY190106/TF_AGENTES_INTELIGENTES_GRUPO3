@@ -315,13 +315,14 @@ if __name__ == "__main__":
     print("    [1]  XGBoost")
     print("    [2]  LogisticRegression")
     print("    [3]  SVM  (Support Vector Machine)")
+    print("    [4]  Random Forest")
     print()
 
     while True:
-        opcion = input("  Ingrese una opción (1 / 2 / 3): ").strip()
-        if opcion in ("1", "2", "3"):
+        opcion = input("  Ingrese una opción (1 / 2 / 3 / 4): ").strip()
+        if opcion in ("1", "2", "3", "4"):
             break
-        print("  ⚠  Opción inválida. Por favor ingrese 1, 2 o 3.")
+        print("  ⚠  Opción inválida. Por favor ingrese 1, 2, 3 o 4.")
 
     cfg = MLConfig()
 
@@ -345,6 +346,13 @@ if __name__ == "__main__":
         _model_path   = str(cfg.svm_model_artifact_path)
         _encoder_path = str(cfg.svm_encoder_artifact_path)
         _report_file  = "models/evaluation_report_svm.txt"
+        _model_type   = "sklearn"
+
+    if opcion == "4":
+        _model_name   = "RandomForest"
+        _model_path   = str(cfg.rf_model_artifact_path)
+        _encoder_path = str(cfg.rf_encoder_artifact_path)
+        _report_file  = "models/evaluation_report_randomforest.txt"
         _model_type   = "sklearn"
 
     # ─── Verificar que los artefactos existen ────────────────────────────────
