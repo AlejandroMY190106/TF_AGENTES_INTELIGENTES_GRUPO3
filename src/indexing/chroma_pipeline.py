@@ -139,6 +139,11 @@ class ChromaIndexingPipeline:
         logger.info(f"🎯 ¡Indexación completada! Total de chunks almacenados en ChromaDB: {total_chunks_indexed}")
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input-dir", type=str, default="data/merged_cleaned")
+    args = parser.parse_args()
+    
     # Al ejecutar desde la raíz, apuntamos directo a las carpetas base del repositorio
     pipeline = ChromaIndexingPipeline(db_path="data/chroma_storage")
-    pipeline.run_pipeline(input_dir="data/merged")
+    pipeline.run_pipeline(input_dir=args.input_dir)

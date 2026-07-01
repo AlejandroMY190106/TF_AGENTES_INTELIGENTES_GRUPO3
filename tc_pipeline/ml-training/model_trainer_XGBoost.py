@@ -35,6 +35,7 @@ import joblib
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from sklearn.utils.class_weight import compute_sample_weight
 
 # ─── Resolución dinámica de la raíz del proyecto ─────────────────────────────
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -205,10 +206,22 @@ def train(
 
     model = xgb.XGBClassifier(**params)
 
-    logger.info("Entrenando XGBClassifier...")
+    # Compensación de desbalance de clases mediante sample_weight inversamente
+    # proporcional a la frecuencia de cada clase (estrategia 'balanced').
+    # Equivale a class_weight='balanced' de scikit-learn pero en la API de XGBoost.
+    sample_weights = compute_sample_weight(class_weight="balanced", y=y_train)
+    logger.info(
+        "sample_weight calculado (balanced) — min=%.4f | max=%.4f | mean=%.4f",
+        sample_weights.min(),
+        sample_weights.max(),
+        sample_weights.mean(),
+    )
+
+    logger.info("Entrenando XGBClassifier con sample_weight balanceado...")
     model.fit(
         X_train,
         y_train,
+        sample_weight=sample_weights,
         eval_set=[(X_test, y_test)],
         verbose=False,
     )

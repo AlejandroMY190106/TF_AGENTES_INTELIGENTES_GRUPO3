@@ -1,0 +1,487 @@
+
+================================================================================
+  ANÁLISIS DE DISTRIBUCIÓN DE CLASES — data/merged/
+================================================================================
+
+  Total de registros escaneados :     68,075
+  Registros con etiqueta nula   :         85
+  Registros con etiqueta válida :     67,990
+  Clases únicas encontradas     :        217
+
+--------------------------------------------------------------------------------
+  1. DISTRIBUCIÓN COMPLETA POR CLASE (orden descendente de frecuencia)
+--------------------------------------------------------------------------------
+  Rango      Count   %Total  Clase
+  ─────  ─────────  ───────  ───────────────────────────────────────────────────────
+      1     18,599   27.36%  [  ] Improcedente
+      2     17,711   26.05%  [  ] Infundada
+      3     10,995   16.17%  [  ] Fundada
+      4      6,844   10.07%  [  ] Improcedente la demanda (Autos)
+      5      2,301    3.38%  [  ] Nulo y admítase la demanda en el PJ
+      6      2,076    3.05%  [  ] Otros
+      7      1,940    2.85%  [  ] Fundada/ Improcedente
+      8      1,456    2.14%  [  ] Infundada/Improcedente
+      9      1,237    1.82%  [  ] Improcedente / Infundada
+     10      1,154    1.70%  [  ] Fundada/Infundada
+     11        582    0.86%  [  ] Nulo el Concesorio del RAC
+     12        465    0.68%  [  ] Fundado el desistimiento
+     13        238    0.35%  [  ] Admite la incorporación
+     14        230    0.34%  [  ] Infundada / Fundada
+     15        224    0.33%  [  ] Admite la demanda (PI-CC)
+     16        199    0.29%  [  ] Improcedente el RAC
+     17        191    0.28%  [  ] Improcedente/Fundada
+     18        185    0.27%  [  ] Admítase la demanda en el TC
+     19        157    0.23%  [  ] Fundada/Infundada /Improcedente
+     20        133    0.20%  [  ] Infundada / improcedente
+     21        122    0.18%  [  ] Infundada/ Infundada
+     22         88    0.13%  [  ] Fundada en parte/ Improcedente
+     23         74    0.11%  [  ] Fundada en parte
+     24         65    0.10%  [  ] Inadmisible la demanda (PI-CC)
+     25         63    0.09%  [  ] Improcedente la demanda (PI-CC)
+     26         53    0.08%  [  ] Improcedente la incorporación
+     27         49    0.07%  [  ] Fundada en parte/ Infundada
+     28         26    0.04%  [  ] Fundada/Improcedente/Infundada
+     29         22    0.03%  [  ] Infundada/Fundada/ Improcedente
+     30         20    0.03%  [  ] Improcedente / Fundada en parte
+     31         20    0.03%  [  ] Improcedente/ Improcedente
+     32         18    0.03%  [F ] Fundada / Improcedente costas
+     33         17    0.03%  [F ] Infundada excepción / Fundada
+     34         16    0.02%  [F ] Fundada / Improcedente
+     35         14    0.02%  [F ] Infundada por mayoría
+     36         13    0.02%  [F ] Improcedente la medida cautelar
+     37         12    0.02%  [F ] Fundada en parte / Improcedente costas
+     38         11    0.02%  [F ] Fundada/ Fundada
+     39         10    0.01%  [F ] Improcedente/ Fundada/ Infundada
+     40         10    0.01%  [F ] Fundada en parte / Infundada / Improcedente
+     41          9    0.01%  [F ] Fundada/ Improcedente/ Improcedente
+     42          9    0.01%  [F ] Nulo y admítase la demanda en PJ
+     43          9    0.01%  [F ] Improcedente / Infundada / Fundada
+     44          8    0.01%  [F ] Fundada / Improcedente extremo
+     45          8    0.01%  [F ] Infundada y/o Improcedente
+     46          8    0.01%  [F ] Infundadas / Improcedente
+     47          8    0.01%  [F ] Fundada/Improcedente(costas procesales)
+     48          8    0.01%  [F ] Fundada el desistimiento
+     49          7    0.01%  [F ] Infundada/ Infundada/ Improcedente
+     50          7    0.01%  [F ] Improcedencia
+     51          7    0.01%  [F ] Infundada/ Improcedente/ Infundada
+     52          7    0.01%  [F ] Infundada excepción / Infundada
+     53          6    0.01%  [F ] Fundada / Improcedente remuneraciones
+     54          6    0.01%  [F ] Fundada/ Infundada/ Infundada
+     55          6    0.01%  [F ] Fundada / Infundada
+     56          6    0.01%  [F ] Infundada extremo/Improcedente
+     57          5    0.01%  [F ] Fundado / Improcedente costas
+     58          5    0.01%  [F ] Inadmisible
+     59          5    0.01%  [F ] Infundada excepciones / Fundada
+     60          4    0.01%  [F ] Fundada / Infundado
+     61          4    0.01%  [F ] Infundada/Improcedente/Fundada
+     62          4    0.01%  [F ] Improcedente/ Infundada/ Infundada
+     63          4    0.01%  [F ] Fundado en parte / improcedente
+     64          3    0.00%  [F ] Nulo
+     65          3    0.00%  [F ] Infudada/ Improcedente
+     66          3    0.00%  [F ] Infundada/ Improcedente extremo
+     67          3    0.00%  [F ] Admite la incorporación/ Improcedente la incorporación
+     68          3    0.00%  [F ] Admite la medida cautelar
+     69          3    0.00%  [F ] Improcedente e infundada
+     70          3    0.00%  [F ] Fundada en mayoría
+     71          3    0.00%  [F ] Nula y admítase la demanda en el PJ
+     72          3    0.00%  [F ] Improcedente / Infundada en parte
+     73          3    0.00%  [F ] Infundada en parte
+     74          2    0.00%  [F ] Infunda/ Improcedente
+     75          2    0.00%  [F ] Infunfada
+     76          2    0.00%  [F ] Improcedente extremo / Infundada extremo
+     77          2    0.00%  [F ] Improdecente
+     78          2    0.00%  [F ] Fundada en parte / Improcedente remuneraciones
+     79          2    0.00%  [F ] Infundada / Fundado
+     80          2    0.00%  [F ] Infundadas excepciones / Fundada
+     81          2    0.00%  [F ] Fundada en parte / Infundada/ Improcedente  costas
+     82          2    0.00%  [F ] Nulo el concesorio del RAC/ Improcedente el RAC
+     83          2    0.00%  [F ] Fundada en parte /Improcedente extremo
+     84          2    0.00%  [F ] Infundadas
+     85          2    0.00%  [F ] Improcedente/ Infundada/ Improcedente
+     86          2    0.00%  [F ] Fundada/ Fundada/ Improcedente/ Improcedente
+     87          2    0.00%  [F ] Fundado/ Infundada
+     88          2    0.00%  [F ] Fundada/ Fundada/ Improcedente
+     89          2    0.00%  [F ] Improcedente/ Improcedente/ Infundada
+     90          2    0.00%  [F ] Infundada / Fundada en parte
+     91          2    0.00%  [F ] Admita la demanda (PI-CC)
+     92          2    0.00%  [F ] Fundada/Improcedente(costos procesales)
+     93          2    0.00%  [F ] Nulo concesorio del RAC
+     94          2    0.00%  [F ] Infundada en parte/ Fundada en parte
+     95          2    0.00%  [F ] Fundada/Improcedente (costas y devengados)
+     96          2    0.00%  [F ] Infundado/ Improcedente
+     97          2    0.00%  [F ] Fundado en parte
+     98          2    0.00%  [F ] Fundada en parte / Improcedente /Improcedente
+     99          2    0.00%  [F ] Infundada excepción/Improcedente
+    100          1    0.00%  [S ] Revocar la resolución recurrida/ Admítase a trámite la demanda
+    101          1    0.00%  [S ] Improcedente/ Infundada extremos
+    102          1    0.00%  [S ] Improcedente la valoración de los medios probatorios / infundada
+    103          1    0.00%  [S ] Fundada extremo
+    104          1    0.00%  [S ] Improcedente/ Infundada extremo
+    105          1    0.00%  [S ] Fundado/ Infundadas excepciones
+    106          1    0.00%  [S ] Sustracción de la materia
+    107          1    0.00%  [S ] Improcredente
+    108          1    0.00%  [S ] Improcednete/ Infundada
+    109          1    0.00%  [S ] Fundada/ Improcedente/ Fundada
+    110          1    0.00%  [S ] Infundada/ Fundada/ Infundada
+    111          1    0.00%  [S ] Improcednte
+    112          1    0.00%  [S ] Infundada/ Fundada/ Infundada/ Improcedente/ Fundada
+    113          1    0.00%  [S ] Fundada/ Infundada/ Infundada/ Improcedente
+    114          1    0.00%  [S ] Infudada
+    115          1    0.00%  [S ] Fundada/ Infundada/ Imprrocedente
+    116          1    0.00%  [S ] Infundada/ Improcedente/ Improcedente
+    117          1    0.00%  [S ] Improcedente/ Fundada/ Improcedente
+    118          1    0.00%  [S ] Fundadas/ Improcedente
+    119          1    0.00%  [S ] Aclaración
+    120          1    0.00%  [S ] Infundada/ Improcedene
+    121          1    0.00%  [S ] Infundadas/ Fundado/ Infundada
+    122          1    0.00%  [S ] Iinfundada
+    123          1    0.00%  [S ] Infundada extremo / Fundada extremo
+    124          1    0.00%  [S ] Improcedente extremo/ Infundada
+    125          1    0.00%  [S ] Fundada excepción / Infundada excepción / Fundada
+    126          1    0.00%  [S ] Fundada y Improcedente
+    127          1    0.00%  [S ] Infundada / Improcedente costas
+    128          1    0.00%  [S ] Fundada / Improcedente(remuneraciones devengadas y costas procesales)
+    129          1    0.00%  [S ] Fundado la vulneración del derecho al plazo razonable/ improcedente extremo
+    130          1    0.00%  [S ] Improcedente respecto alguno de los demandantes / Infundada respecto alguno de los demandantes
+    131          1    0.00%  [S ] Infundadam/Improcedente
+    132          1    0.00%  [S ] Fundada e Infundada
+    133          1    0.00%  [S ] Improccedente
+    134          1    0.00%  [S ] Improcedente / Fundada
+    135          1    0.00%  [S ] Fundada / Fundada / Infundada en lo demás
+    136          1    0.00%  [S ] Fundada vulneración / Fundada amenaza de vulneración / Improcedente extremo / Infundada
+    137          1    0.00%  [S ] Fundada en parte la vulneración del derecho a la motivación/ improcedente en lo demás que contiene
+    138          1    0.00%  [S ] Infundado la vulneración al derecho a la motivación de las resoluciones/improcedente extremo
+    139          1    0.00%  [S ] Fundada en parte / Improcedentes costas y más
+    140          1    0.00%  [S ] Fundada  excepción  / Improcedente
+    141          1    0.00%  [S ] Infundada al no acreditarse la vulneración al derecho a la pensión/ improcedente extremo
+    142          1    0.00%  [S ] Improcedente vulneración de los derechos a la inviolabilidad del domicilio y propiedad/ Infundada extremo/Fundada vulneración al derecho a la libertad de tránsito
+    143          1    0.00%  [S ] Improcedente por interlocutoria
+    144          1    0.00%  [S ] Fundada en parte por vulneración del derecho a la pensión/ Improcedente pago de costas procesales
+    145          1    0.00%  [S ] Improcedente(consideraciones previas)/Infundada
+    146          1    0.00%  [S ] Infundado/fundado/improcedente
+    147          1    0.00%  [S ] Admitida a trámite
+    148          1    0.00%  [S ] Improcedentes excepciones / Fundada
+    149          1    0.00%  [S ] Improcedente/Infundada en el extremo /Fundada en parte /Fundada en el extremo
+    150          1    0.00%  [S ] Fundada la excepción de incompetencia territorial/Improcedente la demanda
+    151          1    0.00%  [S ] Nulidad
+    152          1    0.00%  [S ] Fundada en parte /Improcedente abono de costas
+    153          1    0.00%  [S ] Fundada en parte / Infundada / Improcedente pago de costas
+    154          1    0.00%  [S ] Fundada / Improcedentes costas
+    155          1    0.00%  [S ] Infundada excepción / Fundada / Improcedente costas
+    156          1    0.00%  [S ] Infundada excepción / Fundada en parte
+    157          1    0.00%  [S ] Improcendente / Infundada
+    158          1    0.00%  [S ] Fundada en parte e improcedente
+    159          1    0.00%  [S ] Infudado
+    160          1    0.00%  [S ] Infundada excepción / Fundada / Improcedente
+    161          1    0.00%  [S ] Fundada en parte /  Infundada en parte
+    162          1    0.00%  [S ] Fundada extremo / Improcedente
+    163          1    0.00%  [S ] Fundado  en parte / improcedente costas
+    164          1    0.00%  [S ] Fundada / Improcedente costas y remuneraciones
+    165          1    0.00%  [S ] Fundada / Imprcedente remuneraciones y costas
+    166          1    0.00%  [S ] Infundada (excepción) y Fundada
+    167          1    0.00%  [S ] Infundada e improcedente
+    168          1    0.00%  [S ] Improcedente respecto de la Resolución 31, Infundada respecto a la vulneración de derechos
+    169          1    0.00%  [S ] Fundado/ Improcedente
+    170          1    0.00%  [S ] Fundada/ Infundada(bonificación complementaria) e Improcedente(costas procesales)
+    171          1    0.00%  [S ] Fundada/ Improcedente(bono de reconocimiento)
+    172          1    0.00%  [S ] Fundada / Infundada / Improcedente costas
+    173          1    0.00%  [S ] Fundada(costos procesales)
+    174          1    0.00%  [S ] Fundada en parte/Improcedente (costos y costas procesales)
+    175          1    0.00%  [S ] Fundada costas y costos / Improcedente
+    176          1    0.00%  [S ] Improcedente incorporación
+    177          1    0.00%  [S ] Fundado/improcedente/infundado
+    178          1    0.00%  [S ] Admite incorporación
+    179          1    0.00%  [S ] Fundadada en parte/ Improcedente
+    180          1    0.00%  [S ] Infundada excepciones / Infundada
+    181          1    0.00%  [S ] Improcedente de la demanda
+    182          1    0.00%  [S ] Infudanda
+    183          1    0.00%  [S ] Fundado / Infundada / Improcedente
+    184          1    0.00%  [S ] Infundada excepciones / Improcedente
+    185          1    0.00%  [S ] Infundada excepción / Infundada demanda
+    186          1    0.00%  [S ] Fundada en el extremo que se ha acreditado la vulneración del derecho a la eficacia de los actos administrativos/ Improcedente en el extremo que solicita el cumplimiento del artículo 184 de la Ley 25303
+    187          1    0.00%  [S ] Fundada en parte / Improcedente costos y costas
+    188          1    0.00%  [S ] Fundada por mayoría
+    189          1    0.00%  [S ] Infundadas excepciones / Fundada / Improcedente
+    190          1    0.00%  [S ] Improcedente/ Infundada/ Infundada / fundada
+    191          1    0.00%  [S ] Fundada al haberse acreditado la vulneración del derecho a la pensión/ Improcedente que la pensión de invalidez del Seguro Complementario de Trabajo de Riesgo de la Ley 2670 se otorgue a partir del 13 de mayo de 1998
+    192          1    0.00%  [S ] Infundada al no acreditarse la vulneración de los derechos a la prueba y a la debida motivación/ Improcedente respecto a la revaloración de los medios probatorios
+    193          1    0.00%  [S ] Infundada respecto a la alegada afectación de los derechos al debido proceso, defensa y libertad personal/ Improcedente por sustración de la materia sobre la alegada afectación de la dilación en el trámite del proceso penal
+    194          1    0.00%  [S ] Infundada extremo/ Improcedente la vulneración del derecho de propiedad
+    195          1    0.00%  [S ] Fundada en parte por vulneración al debido proceso/ Improcedente extremo
+    196          1    0.00%  [S ] Infundada vulneración del derecho a la pluralidad de instancias/ Improcedente extremo
+    197          1    0.00%  [S ] Infundada la vulneración del derecho a la debida motivación/ Improcedente extremo
+    198          1    0.00%  [S ] Improcedente extremo/Infundada al no acreditarse la afectación al derecho a la libertad de tránsito
+    199          1    0.00%  [S ] Fundada en parte / Infundado
+    200          1    0.00%  [S ] Fundada la demanda / improcedente extremo
+    201          1    0.00%  [S ] Improcedente la demanda/ Infundada extremos
+    202          1    0.00%  [S ] Improcedente extremos/ Infundada afectación del derecho a la debida motivación de las resolcuiones judiciales
+    203          1    0.00%  [S ] Fundada en parte al acreditarse vulneración del derecho a la debida motivación/ Infundada en lo demás que contiene/ Improcedente extremos
+    204          1    0.00%  [S ] Infundada la violación del principio acusatorio y congruencia/ Improcedente extremos
+    205          1    0.00%  [S ] Infundada afectación de los derechos a la defensa,  a la prueba y al principio de congruencia/ Improcedente extremo
+    206          1    0.00%  [S ] Fundada en parte la demanda/ Improcedente extremo
+    207          1    0.00%  [S ] Fundada afectación del derecho al debido proceso/ Infundada la vulneración del derecho de defensa
+    208          1    0.00%  [S ] Infundada la vulneración del derecho a la debida motivación/ Improcedente extremos
+    209          1    0.00%  [S ] Infundada vulneración del derecho a la debida motivación y al principio de legalidad penal/ Improcedente extremos
+    210          1    0.00%  [S ] Nuo y admítase la demanda en el PJ
+    211          1    0.00%  [S ] Improcedente / Infundado
+    212          1    0.00%  [S ] Desistimiento
+    213          1    0.00%  [S ] Fundada/ Infundada/ Improcedente/ Improcedente
+    214          1    0.00%  [S ] Improcedencia/ Infundada
+    215          1    0.00%  [S ] Fundada/ Infundado/ Improcedente
+    216          1    0.00%  [S ] Nulo y admítase a trámite la demanda en el PJ
+    217          1    0.00%  [S ] Infundada en parte/ Improcedente
+
+  Leyenda: [S ] = Singleton (1 registro) | [F ] = Few (<threshold) | [  ] = Viable
+
+--------------------------------------------------------------------------------
+  2. MACROETIQUETAS CANÓNICAS OBJETIVO DEL PROYECTO
+--------------------------------------------------------------------------------
+  [OK ]  Fundada                            10,995  (16.17%)
+  [OK ]  Improcedente                       18,599  (27.36%)
+  [OK ]  Infundada                          17,711  (26.05%)
+  [AUSENTE]  Procedente                              0  (0.00%)
+
+  NOTA: Si 'Procedente' tiene 0 registros, la etiqueta no existe en el corpus
+        o está expresada con otra variante. Verificar manualmente.
+
+--------------------------------------------------------------------------------
+  3. OUTLIERS Y SINGLETONS (threshold = 20 registros mínimos)
+--------------------------------------------------------------------------------
+  Singletons (exactamente 1 registro)    :   118 clases →       118 registros
+  Pocos datos (2 a 19 registros)          :    68 clases →       353 registros
+  Clases viables (>= 20 registros)       :    31 clases →    67,519 registros
+
+  SINGLETONS (1 registro exacto — se eliminan sin duda):
+    • Revocar la resolución recurrida/ Admítase a trámite la demanda
+    • Improcedente/ Infundada extremos
+    • Improcedente la valoración de los medios probatorios / infundada
+    • Fundada extremo
+    • Improcedente/ Infundada extremo
+    • Fundado/ Infundadas excepciones
+    • Sustracción de la materia
+    • Improcredente
+    • Improcednete/ Infundada
+    • Fundada/ Improcedente/ Fundada
+    • Infundada/ Fundada/ Infundada
+    • Improcednte
+    • Infundada/ Fundada/ Infundada/ Improcedente/ Fundada
+    • Fundada/ Infundada/ Infundada/ Improcedente
+    • Infudada
+    • Fundada/ Infundada/ Imprrocedente
+    • Infundada/ Improcedente/ Improcedente
+    • Improcedente/ Fundada/ Improcedente
+    • Fundadas/ Improcedente
+    • Aclaración
+    • Infundada/ Improcedene
+    • Infundadas/ Fundado/ Infundada
+    • Iinfundada
+    • Infundada extremo / Fundada extremo
+    • Improcedente extremo/ Infundada
+    • Fundada excepción / Infundada excepción / Fundada
+    • Fundada y Improcedente
+    • Infundada / Improcedente costas
+    • Fundada / Improcedente(remuneraciones devengadas y costas procesales)
+    • Fundado la vulneración del derecho al plazo razonable/ improcedente extremo
+    • Improcedente respecto alguno de los demandantes / Infundada respecto alguno de los demandantes
+    • Infundadam/Improcedente
+    • Fundada e Infundada
+    • Improccedente
+    • Improcedente / Fundada
+    • Fundada / Fundada / Infundada en lo demás
+    • Fundada vulneración / Fundada amenaza de vulneración / Improcedente extremo / Infundada
+    • Fundada en parte la vulneración del derecho a la motivación/ improcedente en lo demás que contiene
+    • Infundado la vulneración al derecho a la motivación de las resoluciones/improcedente extremo
+    • Fundada en parte / Improcedentes costas y más
+    • Fundada  excepción  / Improcedente
+    • Infundada al no acreditarse la vulneración al derecho a la pensión/ improcedente extremo
+    • Improcedente vulneración de los derechos a la inviolabilidad del domicilio y propiedad/ Infundada extremo/Fundada vulneración al derecho a la libertad de tránsito
+    • Improcedente por interlocutoria
+    • Fundada en parte por vulneración del derecho a la pensión/ Improcedente pago de costas procesales
+    • Improcedente(consideraciones previas)/Infundada
+    • Infundado/fundado/improcedente
+    • Admitida a trámite
+    • Improcedentes excepciones / Fundada
+    • Improcedente/Infundada en el extremo /Fundada en parte /Fundada en el extremo
+    • Fundada la excepción de incompetencia territorial/Improcedente la demanda
+    • Nulidad
+    • Fundada en parte /Improcedente abono de costas
+    • Fundada en parte / Infundada / Improcedente pago de costas
+    • Fundada / Improcedentes costas
+    • Infundada excepción / Fundada / Improcedente costas
+    • Infundada excepción / Fundada en parte
+    • Improcendente / Infundada
+    • Fundada en parte e improcedente
+    • Infudado
+    • Infundada excepción / Fundada / Improcedente
+    • Fundada en parte /  Infundada en parte
+    • Fundada extremo / Improcedente
+    • Fundado  en parte / improcedente costas
+    • Fundada / Improcedente costas y remuneraciones
+    • Fundada / Imprcedente remuneraciones y costas
+    • Infundada (excepción) y Fundada
+    • Infundada e improcedente
+    • Improcedente respecto de la Resolución 31, Infundada respecto a la vulneración de derechos
+    • Fundado/ Improcedente
+    • Fundada/ Infundada(bonificación complementaria) e Improcedente(costas procesales)
+    • Fundada/ Improcedente(bono de reconocimiento)
+    • Fundada / Infundada / Improcedente costas
+    • Fundada(costos procesales)
+    • Fundada en parte/Improcedente (costos y costas procesales)
+    • Fundada costas y costos / Improcedente
+    • Improcedente incorporación
+    • Fundado/improcedente/infundado
+    • Admite incorporación
+    • Fundadada en parte/ Improcedente
+    • Infundada excepciones / Infundada
+    • Improcedente de la demanda
+    • Infudanda
+    • Fundado / Infundada / Improcedente
+    • Infundada excepciones / Improcedente
+    • Infundada excepción / Infundada demanda
+    • Fundada en el extremo que se ha acreditado la vulneración del derecho a la eficacia de los actos administrativos/ Improcedente en el extremo que solicita el cumplimiento del artículo 184 de la Ley 25303
+    • Fundada en parte / Improcedente costos y costas
+    • Fundada por mayoría
+    • Infundadas excepciones / Fundada / Improcedente
+    • Improcedente/ Infundada/ Infundada / fundada
+    • Fundada al haberse acreditado la vulneración del derecho a la pensión/ Improcedente que la pensión de invalidez del Seguro Complementario de Trabajo de Riesgo de la Ley 2670 se otorgue a partir del 13 de mayo de 1998
+    • Infundada al no acreditarse la vulneración de los derechos a la prueba y a la debida motivación/ Improcedente respecto a la revaloración de los medios probatorios
+    • Infundada respecto a la alegada afectación de los derechos al debido proceso, defensa y libertad personal/ Improcedente por sustración de la materia sobre la alegada afectación de la dilación en el trámite del proceso penal
+    • Infundada extremo/ Improcedente la vulneración del derecho de propiedad
+    • Fundada en parte por vulneración al debido proceso/ Improcedente extremo
+    • Infundada vulneración del derecho a la pluralidad de instancias/ Improcedente extremo
+    • Infundada la vulneración del derecho a la debida motivación/ Improcedente extremo
+    • Improcedente extremo/Infundada al no acreditarse la afectación al derecho a la libertad de tránsito
+    • Fundada en parte / Infundado
+    • Fundada la demanda / improcedente extremo
+    • Improcedente la demanda/ Infundada extremos
+    • Improcedente extremos/ Infundada afectación del derecho a la debida motivación de las resolcuiones judiciales
+    • Fundada en parte al acreditarse vulneración del derecho a la debida motivación/ Infundada en lo demás que contiene/ Improcedente extremos
+    • Infundada la violación del principio acusatorio y congruencia/ Improcedente extremos
+    • Infundada afectación de los derechos a la defensa,  a la prueba y al principio de congruencia/ Improcedente extremo
+    • Fundada en parte la demanda/ Improcedente extremo
+    • Fundada afectación del derecho al debido proceso/ Infundada la vulneración del derecho de defensa
+    • Infundada la vulneración del derecho a la debida motivación/ Improcedente extremos
+    • Infundada vulneración del derecho a la debida motivación y al principio de legalidad penal/ Improcedente extremos
+    • Nuo y admítase la demanda en el PJ
+    • Improcedente / Infundado
+    • Desistimiento
+    • Fundada/ Infundada/ Improcedente/ Improcedente
+    • Improcedencia/ Infundada
+    • Fundada/ Infundado/ Improcedente
+    • Nulo y admítase a trámite la demanda en el PJ
+    • Infundada en parte/ Improcedente
+
+  POCOS DATOS (2–19 registros — se recomiendan eliminar):
+    • (  2 reg.)  Infundadas excepciones / Fundada
+    • (  2 reg.)  Fundada en parte / Infundada/ Improcedente  costas
+    • (  2 reg.)  Nulo el concesorio del RAC/ Improcedente el RAC
+    • (  2 reg.)  Fundada en parte /Improcedente extremo
+    • (  2 reg.)  Infundadas
+    • (  2 reg.)  Improcedente/ Infundada/ Improcedente
+    • (  2 reg.)  Fundada/ Fundada/ Improcedente/ Improcedente
+    • (  2 reg.)  Fundado/ Infundada
+    • (  2 reg.)  Fundada/ Fundada/ Improcedente
+    • (  2 reg.)  Improcedente/ Improcedente/ Infundada
+    • (  2 reg.)  Fundada/Improcedente (costas y devengados)
+    • (  2 reg.)  Infundada en parte/ Fundada en parte
+    • (  2 reg.)  Admita la demanda (PI-CC)
+    • (  2 reg.)  Infundada / Fundada en parte
+    • (  2 reg.)  Nulo concesorio del RAC
+    • (  2 reg.)  Fundada/Improcedente(costos procesales)
+    • (  2 reg.)  Fundada en parte / Improcedente remuneraciones
+    • (  2 reg.)  Infundada / Fundado
+    • (  2 reg.)  Infunfada
+    • (  2 reg.)  Infunda/ Improcedente
+    • (  2 reg.)  Improdecente
+    • (  2 reg.)  Improcedente extremo / Infundada extremo
+    • (  2 reg.)  Fundado en parte
+    • (  2 reg.)  Infundado/ Improcedente
+    • (  2 reg.)  Infundada excepción/Improcedente
+    • (  2 reg.)  Fundada en parte / Improcedente /Improcedente
+    • (  3 reg.)  Improcedente e infundada
+    • (  3 reg.)  Admite la medida cautelar
+    • (  3 reg.)  Improcedente / Infundada en parte
+    • (  3 reg.)  Infundada en parte
+    • (  3 reg.)  Nula y admítase la demanda en el PJ
+    • (  3 reg.)  Fundada en mayoría
+    • (  3 reg.)  Admite la incorporación/ Improcedente la incorporación
+    • (  3 reg.)  Infundada/ Improcedente extremo
+    • (  3 reg.)  Nulo
+    • (  3 reg.)  Infudada/ Improcedente
+    • (  4 reg.)  Fundada / Infundado
+    • (  4 reg.)  Infundada/Improcedente/Fundada
+    • (  4 reg.)  Improcedente/ Infundada/ Infundada
+    • (  4 reg.)  Fundado en parte / improcedente
+    • (  5 reg.)  Inadmisible
+    • (  5 reg.)  Infundada excepciones / Fundada
+    • (  5 reg.)  Fundado / Improcedente costas
+    • (  6 reg.)  Fundada/ Infundada/ Infundada
+    • (  6 reg.)  Infundada extremo/Improcedente
+    • (  6 reg.)  Fundada / Infundada
+    • (  6 reg.)  Fundada / Improcedente remuneraciones
+    • (  7 reg.)  Infundada/ Infundada/ Improcedente
+    • (  7 reg.)  Improcedencia
+    • (  7 reg.)  Infundada/ Improcedente/ Infundada
+    • (  7 reg.)  Infundada excepción / Infundada
+    • (  8 reg.)  Fundada/Improcedente(costas procesales)
+    • (  8 reg.)  Fundada el desistimiento
+    • (  8 reg.)  Infundada y/o Improcedente
+    • (  8 reg.)  Infundadas / Improcedente
+    • (  8 reg.)  Fundada / Improcedente extremo
+    • (  9 reg.)  Nulo y admítase la demanda en PJ
+    • (  9 reg.)  Improcedente / Infundada / Fundada
+    • (  9 reg.)  Fundada/ Improcedente/ Improcedente
+    • ( 10 reg.)  Improcedente/ Fundada/ Infundada
+    • ( 10 reg.)  Fundada en parte / Infundada / Improcedente
+    • ( 11 reg.)  Fundada/ Fundada
+    • ( 12 reg.)  Fundada en parte / Improcedente costas
+    • ( 13 reg.)  Improcedente la medida cautelar
+    • ( 14 reg.)  Infundada por mayoría
+    • ( 16 reg.)  Fundada / Improcedente
+    • ( 17 reg.)  Infundada excepción / Fundada
+    • ( 18 reg.)  Fundada / Improcedente costas
+
+--------------------------------------------------------------------------------
+  4. IMPACTO CUANTITATIVO DE LA ELIMINACIÓN DE OUTLIERS
+--------------------------------------------------------------------------------
+  Registros CONSERVADOS tras limpieza (>= 20 reg.)  :    67,519  (99.31%)
+  Registros ELIMINADOS  (<  20 reg.)               :       471  (0.69%)
+  Clases eliminadas                                  :       186
+  Clases supervivientes                              :        31
+
+--------------------------------------------------------------------------------
+  5. PROYECCIÓN: CONTEOS TRAS NORMALIZACIÓN CANÓNICA (mapeo a 3 macroetiquetas)
+--------------------------------------------------------------------------------
+  Aplicando CANONICAL_MAP sobre el corpus completo:
+
+  Improcedente                       25,808  (37.96%)
+  Infundada                          17,868  (26.28%)
+  Fundada                            11,610  (17.08%)
+
+  Total recuperado tras normalización parcial :    55,286
+  Registros sin mapeo (descartados)           :    12,704
+
+--------------------------------------------------------------------------------
+  6. INSTRUCCIONES DE RELIMPIEZA PARA expedientes_cleaned_*.csv
+--------------------------------------------------------------------------------
+  Columna a operar: 'sentido_resolucion'
+
+  PASO 1 — ELIMINAR filas donde 'sentido_resolucion':
+    a) Sea NaN / vacío
+    b) Pertenezca a cualquier clase con < 20 ocurrencias en el corpus total
+    c) Sea una combinación compuesta que no puede mapearse unívocamente
+       (ej: 'Fundada/ Improcedente', 'Infundada / Fundada en parte')
+
+  PASO 2 — NORMALIZAR los valores restantes:
+    'Fundada en parte'      → 'Fundada'
+    'Infundada en parte'    → 'Infundada'
+    'Iinfundada'/'Infunfada'/'Infudada' → 'Infundada'  (typos)
+    'Improcedencia'/'Improdecente' → 'Improcedente'
+    'Inadmisible'           → 'Improcedente'
+
+  PASO 3 — FILTRO FINAL: conservar solo filas con:
+    sentido_resolucion IN ('Fundada', 'Infundada', 'Improcedente')
+
+  Archivos afectados: expedientes_cleaned_1992.csv → expedientes_cleaned_2026.csv
+
+================================================================================
