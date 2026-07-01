@@ -1,7 +1,7 @@
 """
 src/agent/predictor_service.py
 ──────────────────────────────
-Servicio de Inferencia para el Clasificador Predictivo (XGBoost).
+Servicio de Inferencia para el Clasificador Predictivo (SVM).
 """
 
 import os
@@ -12,7 +12,7 @@ from typing import Any
 
 import joblib
 import numpy as np
-import xgboost as xgb
+
 
 # Asegurar rutas de importación del proyecto antes de cargar módulos locales
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class PredictorService:
     """
-    Servicio encargado de cargar el modelo XGBoost y el codificador de etiquetas
+    Servicio encargado de cargar el modelo SVM y el codificador de etiquetas
     desde disco para realizar predicciones del sentido de la resolución a partir
     de fundamentos o motivos de la demanda.
     """
@@ -35,8 +35,8 @@ class PredictorService:
         cfg = MLConfig()
         
         # Asignar rutas por defecto si no se especifican
-        self.model_path = Path(model_path) if model_path else cfg.model_artifact_path
-        self.encoder_path = Path(encoder_path) if encoder_path else cfg.encoder_artifact_path
+        self.model_path = Path(model_path) if model_path else cfg.svm_model_artifact_path
+        self.encoder_path = Path(encoder_path) if encoder_path else cfg.svm_encoder_artifact_path
         
         logger.info("Inicializando PredictorService...")
         
@@ -50,12 +50,11 @@ class PredictorService:
                 f"  python tc_pipeline/ml-training/model_evaluator.py"
             )
             
-        logger.info(f"Cargando clasificador XGBoost desde: '{self.model_path}'")
+        logger.info(f"Cargando clasificador SVM desde: '{self.model_path}'")
         try:
-            self.model = xgb.XGBClassifier()
-            self.model.load_model(str(self.model_path))
+            self.model = joblib.load(str(self.model_path))
         except Exception as e:
-            raise RuntimeError(f"Error al cargar el modelo XGBoost desde '{self.model_path}': {e}")
+            raise RuntimeError(f"Error al cargar el modelo SVM desde '{self.model_path}': {e}")
             
         logger.info(f"Cargando codificador de etiquetas desde: '{self.encoder_path}'")
         try:
